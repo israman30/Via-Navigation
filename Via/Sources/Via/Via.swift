@@ -229,3 +229,90 @@ struct ViewEnvironmentModifier<Route: ViaRoute>: ViewModifier {
     }
 }
 
+// MARK: - Via Stack
+// The root view that wraps NavigationStack and wires everything together
+public struct ViaStack<Route: ViaRoute, Content: View, Destination: View>: View {
+    @StateObject private var coordinator: ViaCoordinator<Route>
+    private let root: Content
+    private let destination: (Route) -> Destination
+    
+    init(
+        coordinator: ViaCoordinator<ViaRoute> = ViaCoordinator(),
+        @ViewBuilder root: () -> Content,
+        @ViewBuilder destination: @escaping (Route) -> Destination
+    ) {
+        _coordinator = StateObject(wrappedValue: coordinator)
+        self.root = root()
+        self.destination = destination
+    }
+    
+    /// Init with an externally owned coordinator (injected)
+    init(
+        with coordinator: ViaCoordinator<Route>,
+        @ViewBuilder root: () -> Content,
+        @ViewBuilder destination: @escaping (Route) -> Destination
+    ) {
+        _coordinator = StateObject(wrappedValue: coordinator)
+        self.root = root()
+        self.destination = destination
+    }
+    
+    public var body: some View {
+        NavigationStack(path: $coordinator.path) {
+            root
+                .navigationDestination(for: Route.self) { route in
+                    destination(route)
+                        .environmentObject(coordinator)
+                }
+        }
+        .environmentObject(coordinator)
+        .sheet(item: Binding(
+            get: {
+                guard case .sheet = coordinator.presentedRoute else { return nil }
+                return coordinator.presentedRoute
+            },
+            set: { _ in
+                coordinator.dismiss()
+            }
+        )) { state in
+            destination(state.route)
+                .environmentObject(coordinator)
+        }
+        fullScreenCover(
+            item: Binding(
+                get: {
+                    guard case .fullScreen = coordinator.presentedRoute else { return nil }
+                    return coordinator.presentedRoute
+                },
+                set: { _ in coordinator.dismiss() }
+            )
+        ) { state in
+            destination(state.route)
+                .environmentObject(coordinator)
+        }
+        alert(
+            coordinator.activeAlert?.title ?? "",
+            isPresented: Binding(
+                get: { coordinator.activeAlert != nil },
+                set: { if !$0 { coordinator.activeAlert = nil } }
+            )
+        ) {
+            if let actions = coordinator.activeAlert?.actions {
+                ForEach(actions.indices, id: \.self) { index in
+                    let action = actions[index]
+                    Button(action.title, role: action.role) {
+                        action.handler?()
+                        coordinator.activeAlert = nil
+                    }
+                }
+            }
+        } message: {
+            if let message = coordinator.activeAlert?.message {
+                Text(message)
+            }
+        }
+    }
+}
+
+// // MARK: - View Extensions for View
+
