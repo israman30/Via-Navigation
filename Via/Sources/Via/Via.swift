@@ -5,6 +5,47 @@ import Foundation
 import SwiftUI
 import Combine
 
+private extension ToolbarItemPlacement {
+    static var viaLeading: ToolbarItemPlacement {
+#if os(macOS)
+        return .navigation
+#else
+        if #available(iOS 17.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) {
+            return .topBarLeading
+        } else {
+            return .navigationBarLeading
+        }
+#endif
+    }
+    
+    static var viaTrailing: ToolbarItemPlacement {
+#if os(macOS)
+        return .primaryAction
+#else
+        if #available(iOS 17.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) {
+            return .topBarTrailing
+        } else {
+            return .navigationBarTrailing
+        }
+#endif
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func viaFullScreenCoverCompat<Item: Identifiable, Cover: View>(
+        item: Binding<Item?>,
+        onDismiss: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping (Item) -> Cover
+    ) -> some View {
+#if os(macOS)
+        self
+#else
+        self.fullScreenCover(item: item, onDismiss: onDismiss, content: content)
+#endif
+    }
+}
+
 public protocol ViaRoute: Hashable, Identifiable {
     
 }
@@ -46,10 +87,10 @@ public struct ViaAlertConfig {
 // MARK: - Via Alert Action
 public struct ViaAlertAction {
     public let title: String
-    public let role: String? // ButtonRole?
+    public let role: ButtonRole?
     public let handler: (()->Void)?
     
-    public init(title: String, role: String? = nil, handler: (() -> Void)? = nil) {
+    public init(title: String, role: ButtonRole? = nil, handler: (() -> Void)? = nil) {
         self.title = title
         self.role = role
         self.handler = handler
@@ -92,7 +133,7 @@ enum ViaPresentationState<Route: ViaRoute>: Identifiable {
 public class ViaCoordinator<Route: ViaRoute>: ObservableObject {
     @Published public var path: NavigationPath = NavigationPath()
     @Published var presentedRoute: ViaPresentationState<Route>?
-    @Published var activateAlert: ViaAlertConfig?
+    @Published var activeAlert: ViaAlertConfig?
     
     private var routeHistory: [Route] = []
     private var onDismissCallbacks: [String: () -> Void] = [:]
@@ -156,11 +197,11 @@ public class ViaCoordinator<Route: ViaRoute>: ObservableObject {
     // MARK: - Alert
     /// Show an alert
     public func alert(_ config: ViaAlertConfig) {
-        activateAlert = config
+        activeAlert = config
     }
     
     public func alert(title: String, message: String? = nil, actions: [ViaAlertAction] = [ViaAlertAction(title: "Ok")]) {
-        activateAlert = ViaAlertConfig(title: title, message: message, actions: actions)
+        activeAlert = ViaAlertConfig(title: title, message: message, actions: actions)
     }
     
     // MARK: - Navigate (combined)
@@ -237,7 +278,7 @@ public struct ViaStack<Route: ViaRoute, Content: View, Destination: View>: View 
     private let destination: (Route) -> Destination
     
     init(
-        coordinator: ViaCoordinator<ViaRoute> = ViaCoordinator(),
+        coordinator: ViaCoordinator<Route> = ViaCoordinator(),
         @ViewBuilder root: () -> Content,
         @ViewBuilder destination: @escaping (Route) -> Destination
     ) {
@@ -266,25 +307,30 @@ public struct ViaStack<Route: ViaRoute, Content: View, Destination: View>: View 
                 }
         }
         .environmentObject(coordinator)
-        .sheet(item: Binding(
+        .sheet(item: Binding<ViaPresentationState<Route>?>(
             get: {
-                guard case .sheet = coordinator.presentedRoute else { return nil }
-                return coordinator.presentedRoute
+                guard let state = coordinator.presentedRoute, state.isSheet else { return nil }
+                return state
             },
-            set: { _ in
+            set: { _, _ in
                 coordinator.dismiss()
             }
         )) { state in
             destination(state.route)
                 .environmentObject(coordinator)
         }
-        fullScreenCover(
-            item: Binding(
+        .viaFullScreenCoverCompat(
+            item: Binding<ViaPresentationState<Route>?>(
                 get: {
-                    guard case .fullScreen = coordinator.presentedRoute else { return nil }
-                    return coordinator.presentedRoute
+                    guard let state = coordinator.presentedRoute else { return nil }
+                    switch state {
+                    case .fullScreen:
+                        return state
+                    case .sheet:
+                        return nil
+                    }
                 },
-                set: { _ in coordinator.dismiss() }
+                set: { _, _ in coordinator.dismiss() }
             )
         ) { state in
             destination(state.route)
@@ -294,7 +340,9 @@ public struct ViaStack<Route: ViaRoute, Content: View, Destination: View>: View 
             coordinator.activeAlert?.title ?? "",
             isPresented: Binding(
                 get: { coordinator.activeAlert != nil },
-                set: { if !$0 { coordinator.activeAlert = nil } }
+                set: { newValue, _ in
+                    if !newValue { coordinator.activeAlert = nil }
+                }
             )
         ) {
             if let actions = coordinator.activeAlert?.actions {
@@ -332,6 +380,7 @@ public extension View {
 // // MARK: - View Property Wrapper
 // Access coordinator from any view without @EnvironmentObject boilerplate
 @propertyWrapper
+@MainActor
 public struct ViewNavigator<Route: ViaRoute>: DynamicProperty {
     @EnvironmentObject private var coordinator: ViaCoordinator<Route>
     
@@ -339,5 +388,76 @@ public struct ViewNavigator<Route: ViaRoute>: DynamicProperty {
     
     public var wrappedValue: ViaCoordinator<Route> {
         coordinator
+    }
+}
+
+// MARK: - Via Deep Link Handler
+public struct ViaDeeplinkHandler<Route: ViaRoute> {
+    private let coordinator: ViaCoordinator<Route>
+    private let parser: (URL) -> [Route]?
+    
+    public init(coordinator: ViaCoordinator<Route>, parser: @escaping (URL) -> [Route]?) {
+        self.coordinator = coordinator
+        self.parser = parser
+    }
+    
+    // Handle an incoming URL and navigate to the resolved routes
+    @MainActor
+    public func handle(_ url: URL) {
+        guard let routes = parser(url) else { return }
+        coordinator.deepLink(routes)
+    }
+}
+
+// MARK: - View Modifier for Deep Link
+public extension View {
+
+    /// Handle deep links using Helm
+    func viaOnOpenURL<Route: ViaRoute>(
+        coordinator: ViaCoordinator<Route>,
+        parser: @escaping (URL) -> [Route]?
+    ) -> some View {
+        self.onOpenURL { url in
+            let handler = ViaDeeplinkHandler(coordinator: coordinator, parser: parser)
+            Task { handler.handle(url) }
+        }
+    }
+}
+
+// MARK: - View Modifier for Deep Link
+public extension View {
+    /// Handle deep links using Helm
+    func viaBackButton<Route: ViaRoute>(coordinator: ViaCoordinator<Route>, label: String = "Back") -> some View {
+        self.toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    coordinator.pop()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text(label)
+                    }
+                }
+                .opacity(coordinator.canPop ? 1 : 0)
+            }
+        }
+        .navigationBarBackButtonHidden(coordinator.canPop)
+    }
+
+    /// Add a dismiss button for sheets / full screen covers
+    func viaDismissButton<Route: ViaRoute>(
+        coordinator: ViaCoordinator<Route>,
+        placement: ToolbarItemPlacement
+    ) -> some View {
+        self.toolbar {
+            ToolbarItem(placement: placement) {
+                Button {
+                    coordinator.dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
     }
 }
