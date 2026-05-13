@@ -73,7 +73,7 @@ public protocol Coordinating: ObservableObject {
 ///   `NavigationStack(path:)` with type safety and without type erasure.
 /// - View construction returns `AnyView` to keep the API surface small and easy to override
 
-open class Coordinator<Route: Hashable>: ObservableObject, Coordinating {
+open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
     @Published public var path: [Route] = []
     
     public init() {}
@@ -85,11 +85,13 @@ open class Coordinator<Route: Hashable>: ObservableObject, Coordinating {
     open func destinationView(for route: Route) -> AnyView {
         AnyView(EmptyView())
     }
-    // MARK: - Navigation APIs
     
+    // MARK: - Navigation APIs
     public func navigate(to route: Route, animated: Bool = true) {
         if animated {
-            let _ = withAnimation { path.append(route) }
+            let _ = withAnimation {
+                path.append(route)
+            }
         } else {
             path.append(route)
         }
@@ -97,7 +99,9 @@ open class Coordinator<Route: Hashable>: ObservableObject, Coordinating {
     
     public func setPath(_ routes: [Route], animated: Bool = true) {
         if animated {
-            let _ = withAnimation { path = routes }
+            let _ = withAnimation {
+                path = routes
+            }
         } else {
             path = routes
         }
@@ -110,7 +114,9 @@ open class Coordinator<Route: Hashable>: ObservableObject, Coordinating {
     public func navigateBack(animated: Bool = true) {
         guard !path.isEmpty else { return }
         if animated {
-            _ = withAnimation { path.removeLast() }
+            let _ = withAnimation {
+                path.removeLast()
+            }
         } else {
             path.removeLast()
         }
@@ -120,7 +126,9 @@ open class Coordinator<Route: Hashable>: ObservableObject, Coordinating {
         guard steps > 0, !path.isEmpty else { return }
         let safeSteps = min(steps, path.count)
         if animated {
-            let _ = withAnimation { path.removeLast(safeSteps) }
+            let _ = withAnimation {
+                path.removeLast(safeSteps)
+            }
         } else {
             path.removeLast(safeSteps)
         }
@@ -136,7 +144,9 @@ open class Coordinator<Route: Hashable>: ObservableObject, Coordinating {
     
     public func navigateToRoot(animated: Bool = true) {
         if animated {
-            let _ = withAnimation { path.removeAll() }
+            let _ = withAnimation {
+                path.removeAll()
+            }
         } else {
             path.removeAll()
         }
@@ -151,7 +161,7 @@ open class Coordinator<Route: Hashable>: ObservableObject, Coordinating {
 /// alive using `@StateObject` and inject it into the environment as an `EnvironmentObject`.
 ///
 @MainActor
-public struct CoordinatorView<C: Coordinating>: View {
+public struct ViaNavigatorView<C: Coordinating>: View {
     @StateObject private var coordinator: C
     
     public init(coordinator: @autoclosure @escaping () -> C) {
@@ -173,4 +183,4 @@ public struct CoordinatorView<C: Coordinating>: View {
 ///
 /// Prefer `CoordinatorView` directly.
 @available(*, deprecated, message: "Use CoordinatorView(coordinator:) instead.")
-public typealias Navigation<C: Coordinating> = CoordinatorView<C>
+public typealias Navigation<C: Coordinating> = ViaNavigatorView<C>

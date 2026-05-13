@@ -16,16 +16,16 @@ import Via
 /// - Open `CoordinatorSampleRootView` in the preview at the bottom of this file, or
 /// - Drop `CoordinatorSampleRootView()` into any SwiftUI hierarchy in a Debug build.
 
-public struct CoordinatorSampleRootView: View {
+public struct AppSampleRootView: View {
     public init() {}
 
     public var body: some View {
-        CoordinatorView(coordinator: RootCoordinator())
+        ViaNavigatorView(coordinator: RootCoordinator())
     }
 }
 
 @MainActor
-private final class RootCoordinator: Coordinator<Route> {
+private final class RootCoordinator: ViaNavigator<Route> {
     override func rootView() -> AnyView {
         AnyView(Main())
     }
@@ -136,7 +136,7 @@ private struct Settings: View {
 
 struct CoordinatorSampleRootView_Previews: PreviewProvider {
     static var previews: some View {
-        CoordinatorSampleRootView()
+        AppSampleRootView()
     }
 }
 #endif
