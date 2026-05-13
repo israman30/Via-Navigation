@@ -15,12 +15,21 @@ let package = Package(
             name: "Via",
             targets: ["Via"]
         ),
+        .library(
+            name: "ViaDemoUI",
+            targets: ["ViaDemoUI"]
+        ),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "Via"
+        ),
+        .target(
+            name: "ViaDemoUI",
+            dependencies: ["Via"],
+            path: "Examples"
         ),
 
     ],
