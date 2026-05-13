@@ -315,4 +315,29 @@ public struct ViaStack<Route: ViaRoute, Content: View, Destination: View>: View 
 }
 
 // // MARK: - View Extensions for View
+public extension View {
+    /// Inject a Via coordinator into the view hierarchy
+    func viaCoordinator<Route: ViaRoute>(_ coordinator: ViaCoordinator<Route>) -> some View {
+        self.environmentObject(coordinator)
+    }
+    
+    /// Convenience: push a route
+    func viaPush<Route: ViaRoute>(_ route: Route, using coordinator: ViaCoordinator<Route>) -> some View {
+        self.onAppear {
+            coordinator.push(route)
+        }
+    }
+}
 
+// // MARK: - View Property Wrapper
+// Access coordinator from any view without @EnvironmentObject boilerplate
+@propertyWrapper
+public struct ViewNavigator<Route: ViaRoute>: DynamicProperty {
+    @EnvironmentObject private var coordinator: ViaCoordinator<Route>
+    
+    public init() {}
+    
+    public var wrappedValue: ViaCoordinator<Route> {
+        coordinator
+    }
+}
