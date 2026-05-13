@@ -58,10 +58,10 @@ import Combine
 public protocol Coordinating: ObservableObject {
     associatedtype Route: Hashable
     var path: [Route] { get set }
-
+    
     /// Build the root (first) screen in the `NavigationStack`.
     func rootView() -> AnyView
-
+    
     /// Build the destination view for a pushed route.
     func destinationView(for route: Route) -> AnyView
 }
@@ -75,73 +75,73 @@ public protocol Coordinating: ObservableObject {
 
 open class Coordinator<Route: Hashable>: ObservableObject, Coordinating {
     @Published public var path: [Route] = []
-
-        public init() {}
-
-        open func rootView() -> AnyView {
-            AnyView(EmptyView())
-        }
-
-        open func destinationView(for route: Route) -> AnyView {
-            AnyView(EmptyView())
-        }
+    
+    public init() {}
+    
+    open func rootView() -> AnyView {
+        AnyView(EmptyView())
+    }
+    
+    open func destinationView(for route: Route) -> AnyView {
+        AnyView(EmptyView())
+    }
     // MARK: - Navigation APIs
-
-        public func navigate(to route: Route, animated: Bool = true) {
-            if animated {
-               let _ = withAnimation { path.append(route) }
-            } else {
-                path.append(route)
-            }
+    
+    public func navigate(to route: Route, animated: Bool = true) {
+        if animated {
+            let _ = withAnimation { path.append(route) }
+        } else {
+            path.append(route)
         }
-
-        public func setPath(_ routes: [Route], animated: Bool = true) {
-            if animated {
-               let _ = withAnimation { path = routes }
-            } else {
-                path = routes
-            }
+    }
+    
+    public func setPath(_ routes: [Route], animated: Bool = true) {
+        if animated {
+            let _ = withAnimation { path = routes }
+        } else {
+            path = routes
         }
+    }
     
     public func replace(with route: Route, animated: Bool = true) {
-            setPath([route], animated: animated)
+        setPath([route], animated: animated)
+    }
+    
+    public func navigateBack(animated: Bool = true) {
+        guard !path.isEmpty else { return }
+        if animated {
+            _ = withAnimation { path.removeLast() }
+        } else {
+            path.removeLast()
         }
-
-        public func navigateBack(animated: Bool = true) {
-            guard !path.isEmpty else { return }
-            if animated {
-                _ = withAnimation { path.removeLast() }
-            } else {
-                path.removeLast()
-            }
-        }
+    }
     
     public func navigateBack(steps: Int, animated: Bool = true) {
-            guard steps > 0, !path.isEmpty else { return }
-            let safeSteps = min(steps, path.count)
-            if animated {
-                let _ = withAnimation { path.removeLast(safeSteps) }
-            } else {
-                path.removeLast(safeSteps)
-            }
+        guard steps > 0, !path.isEmpty else { return }
+        let safeSteps = min(steps, path.count)
+        if animated {
+            let _ = withAnimation { path.removeLast(safeSteps) }
+        } else {
+            path.removeLast(safeSteps)
         }
-
-        public func popTo(_ route: Route, animated: Bool = true) {
-            guard let index = path.lastIndex(of: route) else { return }
-            let desiredCount = index + 1
-            let toRemove = path.count - desiredCount
-            guard toRemove > 0 else { return }
-            navigateBack(steps: toRemove, animated: animated)
+    }
+    
+    public func popTo(_ route: Route, animated: Bool = true) {
+        guard let index = path.lastIndex(of: route) else { return }
+        let desiredCount = index + 1
+        let toRemove = path.count - desiredCount
+        guard toRemove > 0 else { return }
+        navigateBack(steps: toRemove, animated: animated)
+    }
+    
+    public func navigateToRoot(animated: Bool = true) {
+        if animated {
+            let _ = withAnimation { path.removeAll() }
+        } else {
+            path.removeAll()
         }
-
-        public func navigateToRoot(animated: Bool = true) {
-            if animated {
-               let _ = withAnimation { path.removeAll() }
-            } else {
-                path.removeAll()
-            }
-        }
-
+    }
+    
 }
 
 /// A reusable `NavigationStack` host for any coordinator.
@@ -153,11 +153,11 @@ open class Coordinator<Route: Hashable>: ObservableObject, Coordinating {
 @MainActor
 public struct CoordinatorView<C: Coordinating>: View {
     @StateObject private var coordinator: C
-
+    
     public init(coordinator: @autoclosure @escaping () -> C) {
         _coordinator = StateObject(wrappedValue: coordinator())
     }
-
+    
     public var body: some View {
         NavigationStack(path: $coordinator.path) {
             coordinator.rootView()
