@@ -124,6 +124,60 @@ private final class RootCoordinator: ViaNavigator<Route> {
 }
 ```
 
+### TabView (one navigation stack per tab)
+
+When your UI uses `TabView`, it’s common to want each tab to keep its own independent navigation stack.
+
+`ViaTabNavigator<Tab, Route>` provides:
+
+- **Per-tab stacks**: `paths[tab]` stores a separate `[Route]` for each tab.
+- **Selected tab binding**: `selectedTab` binds to `TabView(selection:)`.
+- **Convenient APIs**: push/pop on the current tab, or target another tab (optionally switching tabs first).
+
+Working demo: `Via/Examples/TabSampleView.swift` (`TabSampleRootView`).
+
+```swift
+import SwiftUI
+import Via
+
+enum AppTab: Hashable { case feed, settings }
+enum AppRoute: Hashable { case details(id: String), about }
+
+@MainActor
+final class AppCoordinator: ViaTabNavigator<AppTab, AppRoute> {
+    init() {
+        super.init(tabs: [.feed, .settings], selectedTab: .feed)
+    }
+
+    override func rootView(for tab: AppTab) -> AnyView {
+        switch tab {
+        case .feed: AnyView(FeedView())
+        case .settings: AnyView(SettingsView())
+        }
+    }
+
+    override func destinationView(for route: AppRoute) -> AnyView {
+        switch route {
+        case .details(let id): AnyView(DetailsView(id: id))
+        case .about: AnyView(AboutView())
+        }
+    }
+
+    override func tabItem(for tab: AppTab) -> AnyView {
+        switch tab {
+        case .feed: AnyView(Label("Feed", systemImage: "list.bullet"))
+        case .settings: AnyView(Label("Settings", systemImage: "gearshape"))
+        }
+    }
+}
+
+struct AppRoot: View {
+    var body: some View {
+        ViaTabNavigatorView(coordinator: AppCoordinator())
+    }
+}
+```
+
 ## Common navigation APIs
 
 From any view that has the coordinator via `@EnvironmentObject`:
