@@ -1,56 +1,53 @@
 // The Swift Programming Language
 // https://docs.swift.org/swift-book
 
-import Foundation
 import SwiftUI
 import Combine
 
-/// Coordinator pattern for `NavigationStack` that is reusable from the `Utils` framework.
+/// `ViaNavigator` is a lightweight coordinator abstraction for SwiftUI `NavigationStack`.
 ///
-/// This file provides a small, library-friendly abstraction around `NavigationStack` that
-/// keeps navigation state and view construction in one place (a coordinator), while still
-/// letting SwiftUI own the navigation container.
+/// It lets you keep **navigation state** and **destination view construction** in one place (a
+/// coordinator), while still using SwiftUI’s native navigation container.
 ///
-/// ### Setup (what you create in your app/module)
-/// 1. Define a `Route` type (usually an enum) that conforms to `Hashable`.
-/// 2. Subclass `Coordinator<Route>` and implement:
-///    - `rootView()` for the first screen
-///    - `destinationView(for:)` for pushed screens
-/// 3. Host everything using `CoordinatorView(coordinator:)`.
+/// ## Setup
+/// - **1) Define routes**: create a `Route` (typically an `enum`) that conforms to `Hashable`.
+/// - **2) Subclass `ViaNavigator<Route>`**:
+///   - Override `rootView()` for your entry screen.
+///   - Override `destinationView(for:)` and return a view for each `Route` case.
+/// - **3) Host once**: embed the coordinator in `ViaNavigatorView(coordinator:)` at your app root.
 ///
-/// ### How it works (implementation summary)
-/// - `Coordinator` owns the navigation stack state as an array of routes (`path: [Route]`)
-/// - `CoordinatorView` creates a `NavigationStack(path:)` bound to that array
-/// - `.navigationDestination(for:)` delegates destination view construction back to the coordinator
-/// - The coordinator is injected into the view tree via `.environmentObject(coordinator)`
+/// ## Implementation details
+/// - `ViaNavigator` stores the stack as `@Published var path: [Route]`.
+/// - `ViaNavigatorView` binds `NavigationStack(path:)` to that array.
+/// - `.navigationDestination(for:)` calls back into `destinationView(for:)` to build pushed screens.
+/// - The coordinator is injected via `.environmentObject`, so screens can call navigation APIs.
 ///
-/// ### Usage (copy/paste)
+/// ## Usage (views + switch cases)
 /// ```swift
 /// import SwiftUI
-/// import Utils
+/// import Via
 ///
-/// enum AppRoute: Hashable { case details(id: String), settings }
+/// enum AppRoute: Hashable { case signup, details(id: String) }
 ///
-/// final class AppCoordinator: Coordinator<AppRoute> {
-///     override func rootView() -> AnyView { AnyView(HomeView()) }
+/// @MainActor
+/// final class AppCoordinator: ViaNavigator<AppRoute> {
+///     override func rootView() -> AnyView { AnyView(LoginView()) }
 ///     override func destinationView(for route: AppRoute) -> AnyView {
 ///         switch route {
+///         case .signup: AnyView(SignupView())
 ///         case .details(let id): AnyView(DetailsView(id: id))
-///         case .settings: AnyView(SettingsView())
 ///         }
 ///     }
 /// }
 ///
 /// struct AppRoot: View {
-///     var body: some View {
-///         CoordinatorView(coordinator: AppCoordinator())
-///     }
+///     var body: some View { ViaNavigatorView(coordinator: AppCoordinator()) }
 /// }
 ///
-/// struct HomeView: View {
-///     @EnvironmentObject var coordinator: AppCoordinator
+/// struct LoginView: View {
+///     @EnvironmentObject private var coordinator: AppCoordinator
 ///     var body: some View {
-///         Button("Go") { coordinator.navigate(to: .details(id: "123")) }
+///         Button("Sign up") { coordinator.navigate(to: .signup) }
 ///     }
 /// }
 /// ```
@@ -87,6 +84,10 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
     }
     
     // MARK: - Navigation APIs
+    /// Push a route onto the navigation stack.
+    ///
+    /// Call this from any screen that has access to the coordinator, e.g.:
+    /// `@EnvironmentObject private var coordinator: MyCoordinator`.
     public func navigate(to route: Route, animated: Bool = true) {
         if animated {
             let _ = withAnimation {
@@ -97,6 +98,9 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
         }
     }
     
+    /// Replace the entire navigation stack with a new ordered list of routes.
+    ///
+    /// - Note: This is useful for deep-linking or restoring state.
     public func setPath(_ routes: [Route], animated: Bool = true) {
         if animated {
             let _ = withAnimation {
@@ -107,10 +111,12 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
         }
     }
     
+    /// Replace the stack with a single route.
     public func replace(with route: Route, animated: Bool = true) {
         setPath([route], animated: animated)
     }
     
+    /// Pop one screen.
     public func navigateBack(animated: Bool = true) {
         guard !path.isEmpty else { return }
         if animated {
@@ -122,6 +128,7 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
         }
     }
     
+    /// Pop multiple screens.
     public func navigateBack(steps: Int, animated: Bool = true) {
         guard steps > 0, !path.isEmpty else { return }
         let safeSteps = min(steps, path.count)
@@ -134,6 +141,9 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
         }
     }
     
+    /// Pop back to the last occurrence of `route` in the current stack.
+    ///
+    /// If the route is not present, this is a no-op.
     public func popTo(_ route: Route, animated: Bool = true) {
         guard let index = path.lastIndex(of: route) else { return }
         let desiredCount = index + 1
@@ -142,6 +152,7 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
         navigateBack(steps: toRemove, animated: animated)
     }
     
+    /// Pop all screens and return to `rootView()`.
     public func navigateToRoot(animated: Bool = true) {
         if animated {
             let _ = withAnimation {
@@ -157,8 +168,8 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
 /// A reusable `NavigationStack` host for any coordinator.
 ///
 /// ### Usage
-/// Create the coordinator once at the root, and pass it here. `CoordinatorView` will keep it
-/// alive using `@StateObject` and inject it into the environment as an `EnvironmentObject`.
+/// Create the coordinator once at the root, and pass it here. `ViaNavigatorView` keeps it
+/// alive using `@StateObject` and injects it into the environment as an `EnvironmentObject`.
 ///
 @MainActor
 public struct ViaNavigatorView<C: Coordinating>: View {
@@ -181,6 +192,6 @@ public struct ViaNavigatorView<C: Coordinating>: View {
 
 /// Backwards-friendly alias for the coordinator-based host view.
 ///
-/// Prefer `CoordinatorView` directly.
-@available(*, deprecated, message: "Use CoordinatorView(coordinator:) instead.")
+/// Prefer `ViaNavigatorView` directly.
+@available(*, deprecated, message: "Use ViaNavigatorView(coordinator:) instead.")
 public typealias Navigation<C: Coordinating> = ViaNavigatorView<C>
