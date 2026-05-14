@@ -20,8 +20,8 @@
   <text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-family="SF Pro Display, sans-serif" font-size="120" font-weight="800" fill="url(#textGradient)">Via</text>
   
   <!-- Subtitle -->
-  <text x="50%" y="65%" dominant-baseline="middle" text-anchor="middle" font-family="SF Pro Text, sans-serif" font-size="32" fill="#ffffff" opacity="0.9">SwiftUI Navigation Coordinator</text>
+  <text x="50%" y="65%" dominant-baseline="middle" text-anchor="middle" font-family="SF Pro Text, sans-serif" font-size="32" fill="#ffffff" opacity="0.9">iOS Navigation Coordinator</text>
   
   <!-- Tagline -->
-  <text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" text-rendering="geometricPrecision" font-family="SF Pro Text, sans-serif" font-size="24" fill="#8e8e93">Lightweight " Type-Safe " Native</text>
+  <text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" font-family="SF Pro Text, sans-serif" font-size="24" fill="#8e8e93">Lightweight • Type-Safe • Native</text>
 </svg>
