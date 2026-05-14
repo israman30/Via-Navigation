@@ -87,8 +87,12 @@ struct HomeView: View {
 
     var body: some View {
         List {
-            Button("Open details") { coordinator.navigate(to: .details(id: "A1")) }
-            Button("Settings") { coordinator.navigate(to: .settings) }
+            Button("Open details") { 
+                coordinator.navigate(to: .details(id: "A1")) 
+            }
+            Button("Settings") { 
+                coordinator.navigate(to: .settings) 
+            }
         }
         .navigationTitle("Home")
     }
@@ -114,7 +118,10 @@ import SwiftUI
 import Via
 import Combine
 
-private enum AuthRoute: Hashable { case signup }
+private enum AuthRoute: Hashable {
+    case signup 
+    case login
+}
 
 @MainActor
 private final class AuthCoordinator: ViaNavigator<AuthRoute> {
@@ -126,7 +133,10 @@ private final class AuthCoordinator: ViaNavigator<AuthRoute> {
 
     override func destinationView(for route: AuthRoute) -> AnyView {
         switch route {
-        case .signup: AnyView(SignupView())
+        case .signup: 
+            AnyView(SignupView())
+        case .login:
+            AnyView(LoginView())
         }
     }
 
@@ -151,12 +161,16 @@ private enum Route: Hashable {
 
 @MainActor
 private final class RootCoordinator: ViaNavigator<Route> {
-    override func rootView() -> AnyView { AnyView(Main()) }
+    override func rootView() -> AnyView { 
+        AnyView(Main()) 
+    }
 
     override func destinationView(for route: Route) -> AnyView {
         switch route {
-        case .details(let id): AnyView(DetailsView(id: id))
-        case .settings: AnyView(SettingsView())
+        case .details(let id): 
+            AnyView(DetailsView(id: id))
+        case .settings: 
+            AnyView(SettingsView())
         }
     }
 }
@@ -178,8 +192,13 @@ Working demo: `Via/Examples/TabSampleView.swift` (`TabSampleRootView`).
 import SwiftUI
 import Via
 
-enum AppTab: Hashable { case feed, settings }
-enum AppRoute: Hashable { case details(id: String), about }
+enum AppTab: Hashable { 
+    case feed, settings 
+}
+
+enum AppRoute: Hashable { 
+    case details(id: String), about 
+}
 
 @MainActor
 final class AppCoordinator: ViaTabNavigator<AppTab, AppRoute> {
@@ -189,22 +208,28 @@ final class AppCoordinator: ViaTabNavigator<AppTab, AppRoute> {
 
     override func rootView(for tab: AppTab) -> AnyView {
         switch tab {
-        case .feed: AnyView(FeedView())
-        case .settings: AnyView(SettingsView())
+        case .feed: 
+            AnyView(FeedView())
+        case .settings: 
+            AnyView(SettingsView())
         }
     }
 
     override func destinationView(for route: AppRoute) -> AnyView {
         switch route {
-        case .details(let id): AnyView(DetailsView(id: id))
-        case .about: AnyView(AboutView())
+        case .details(let id): 
+            AnyView(DetailsView(id: id))
+        case .about: 
+            AnyView(AboutView())
         }
     }
 
     override func tabItem(for tab: AppTab) -> AnyView {
         switch tab {
-        case .feed: AnyView(Label("Feed", systemImage: "list.bullet"))
-        case .settings: AnyView(Label("Settings", systemImage: "gearshape"))
+        case .feed: 
+            AnyView(Label("Feed", systemImage: "list.bullet"))
+        case .settings: 
+            AnyView(Label("Settings", systemImage: "gearshape"))
         }
     }
 }
