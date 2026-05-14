@@ -17,6 +17,34 @@
 - **Package URL**: `https://github.com/israman30/Via-Navigation.git`
 - **Product**: `Via`
 
+#### Setup notes
+
+- **Xcode**: `File → Add Package Dependencies…` → paste the URL → select product `Via`.
+- **`Package.swift`**: add the package and the `Via` product to your target dependencies:
+
+```swift
+// swift-tools-version: 6.3
+import PackageDescription
+
+let package = Package(
+    name: "MyApp",
+    platforms: [.iOS(.v16)],
+    dependencies: [
+        // If/when tags are published, prefer `.package(..., from: "x.y.z")` instead.
+        .package(url: "https://github.com/israman30/Via-Navigation.git", branch: "main")
+    ],
+    targets: [
+        .target(
+            name: "MyApp",
+            dependencies: [
+                // `package:` is the SwiftPM package identity (derived from the URL).
+                .product(name: "Via", package: "via-navigation")
+            ]
+        )
+    ]
+)
+```
+
 ### Quick start
 
 1) Define a typed route model (usually an `enum`) that conforms to `Hashable`.
@@ -29,17 +57,21 @@
 import SwiftUI
 import Via
 
+// 1) Routes: model every pushable screen as a Hashable value.
 enum AppRoute: Hashable {
     case details(id: String)
     case settings
 }
 
+// 2) Coordinator: owns navigation state + builds destination views for routes.
 @MainActor
 final class AppCoordinator: ViaNavigator<AppRoute> {
+    // Setup: your root screen (what the NavigationStack starts with).
     override func rootView() -> AnyView {
         AnyView(HomeView())
     }
 
+    // Implementation: a single mapping from Route -> View.
     override func destinationView(for route: AppRoute) -> AnyView {
         switch route {
         case .details(let id):
@@ -52,11 +84,14 @@ final class AppCoordinator: ViaNavigator<AppRoute> {
 
 struct AppRoot: View {
     var body: some View {
+        // 3) Host once: this injects the coordinator into the environment and
+        // wires up NavigationStack to the coordinator's internal path.
         ViaNavigatorView(coordinator: AppCoordinator())
     }
 }
 
 struct HomeView: View {
+    // Usage: access the coordinator anywhere in the tree via EnvironmentObject.
     @EnvironmentObject private var coordinator: AppCoordinator
 
     var body: some View {
@@ -68,6 +103,12 @@ struct HomeView: View {
     }
 }
 ```
+
+#### Implementation notes
+
+- **Single source of truth**: your `Route` type is the API for navigation; the coordinator is where routes become views.
+- **Where to call navigation**: views should call `navigate(...)` / `navigateBack(...)` on the coordinator instead of manually manipulating a `NavigationPath`.
+- **Testability**: coordinators make it easier to unit-test navigation decisions (route selection) separately from view layout.
 
 ## Scenarios
 
@@ -82,10 +123,12 @@ import SwiftUI
 import Via
 import Combine
 
+// Routes here represent screens that can be pushed on top of the current root.
 private enum AuthRoute: Hashable { case signup }
 
 @MainActor
 private final class AuthCoordinator: ViaNavigator<AuthRoute> {
+    // State that influences which *root* view is shown.
     @Published private(set) var isAuthenticated = false
 
     override func rootView() -> AnyView {
@@ -100,7 +143,8 @@ private final class AuthCoordinator: ViaNavigator<AuthRoute> {
 
     func finishAuthentication() {
         isAuthenticated = true
-        navigateToRoot(animated: false) // clear pushed screens before swapping root
+        // Setup detail: clear pushed screens before swapping root.
+        navigateToRoot(animated: false)
     }
 }
 ```
@@ -112,6 +156,7 @@ Use routes to push child screens, and keep the mapping in `destinationView(for:)
 Working demo: `Via/Examples/SmapleView.swift` (`AppSampleRootView`).
 
 ```swift
+// Routes are still the public navigation API for your feature.
 private enum Route: Hashable {
     case details(id: String)
     case settings
@@ -146,15 +191,18 @@ Working demo: `Via/Examples/TabSampleView.swift` (`TabSampleRootView`).
 import SwiftUI
 import Via
 
+// Tabs are independent from routes: a tab is "where you are", a route is "what is pushed".
 enum AppTab: Hashable { case feed, settings }
 enum AppRoute: Hashable { case details(id: String), about }
 
 @MainActor
 final class AppCoordinator: ViaTabNavigator<AppTab, AppRoute> {
     init() {
+        // Setup: declare available tabs + initial selection.
         super.init(tabs: [.feed, .settings], selectedTab: .feed)
     }
 
+    // Implementation: each tab has its own root.
     override func rootView(for tab: AppTab) -> AnyView {
         switch tab {
         case .feed: AnyView(FeedView())
@@ -162,6 +210,7 @@ final class AppCoordinator: ViaTabNavigator<AppTab, AppRoute> {
         }
     }
 
+    // Implementation: pushed destinations are shared across tabs (you decide).
     override func destinationView(for route: AppRoute) -> AnyView {
         switch route {
         case .details(let id): AnyView(DetailsView(id: id))
@@ -169,6 +218,7 @@ final class AppCoordinator: ViaTabNavigator<AppTab, AppRoute> {
         }
     }
 
+    // Setup: TabView labels.
     override func tabItem(for tab: AppTab) -> AnyView {
         switch tab {
         case .feed: AnyView(Label("Feed", systemImage: "list.bullet"))
