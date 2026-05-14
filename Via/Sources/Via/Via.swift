@@ -190,6 +190,220 @@ public struct ViaNavigatorView<C: Coordinating>: View {
     }
 }
 
+// MARK: - TabView support
+
+/// A coordinator protocol for tab-based apps where each tab maintains its own navigation stack.
+@MainActor
+public protocol TabCoordinating: ObservableObject {
+    associatedtype Tab: Hashable
+    associatedtype Route: Hashable
+
+    /// Tabs that should be rendered in the `TabView`, in order.
+    var tabs: [Tab] { get }
+
+    /// The currently selected tab.
+    var selectedTab: Tab { get set }
+
+    /// Per-tab navigation stacks (one `[Route]` per tab).
+    var paths: [Tab: [Route]] { get set }
+
+    /// Build the root (first) screen for a given tab.
+    func rootView(for tab: Tab) -> AnyView
+
+    /// Build the destination view for a pushed route.
+    func destinationView(for route: Route) -> AnyView
+
+    /// Build the tab item label for a given tab.
+    ///
+    /// This is used inside `.tabItem { ... }`.
+    func tabItem(for tab: Tab) -> AnyView
+}
+
+/// Base coordinator class for apps using `TabView` + one `NavigationStack` per tab.
+///
+/// Each tab has its own independent `[Route]` path, so switching tabs preserves each tab’s stack.
+open class ViaTabNavigator<Tab: Hashable, Route: Hashable>: ObservableObject, TabCoordinating {
+    public let tabs: [Tab]
+    @Published public var selectedTab: Tab
+    @Published public var paths: [Tab: [Route]]
+
+    public init(tabs: [Tab], selectedTab: Tab) {
+        self.tabs = tabs
+        self.selectedTab = selectedTab
+
+        var initial: [Tab: [Route]] = [:]
+        for tab in tabs {
+            initial[tab] = []
+        }
+        self.paths = initial
+    }
+
+    open func rootView(for tab: Tab) -> AnyView {
+        AnyView(EmptyView())
+    }
+
+    open func destinationView(for route: Route) -> AnyView {
+        AnyView(EmptyView())
+    }
+
+    open func tabItem(for tab: Tab) -> AnyView {
+        AnyView(EmptyView())
+    }
+
+    // MARK: - Tab APIs
+
+    public func select(tab: Tab, animated: Bool = true) {
+        if animated {
+            let _ = withAnimation { selectedTab = tab }
+        } else {
+            selectedTab = tab
+        }
+    }
+
+    // MARK: - Navigation APIs (selected tab)
+
+    public func navigate(to route: Route, animated: Bool = true) {
+        navigate(to: route, in: selectedTab, animated: animated, selectTab: false)
+    }
+
+    public func setPath(_ routes: [Route], animated: Bool = true) {
+        setPath(routes, in: selectedTab, animated: animated, selectTab: false)
+    }
+
+    public func replace(with route: Route, animated: Bool = true) {
+        replace(with: route, in: selectedTab, animated: animated, selectTab: false)
+    }
+
+    public func navigateBack(animated: Bool = true) {
+        navigateBack(in: selectedTab, animated: animated, selectTab: false)
+    }
+
+    public func navigateBack(steps: Int, animated: Bool = true) {
+        navigateBack(in: selectedTab, steps: steps, animated: animated, selectTab: false)
+    }
+
+    public func popTo(_ route: Route, animated: Bool = true) {
+        popTo(route, in: selectedTab, animated: animated, selectTab: false)
+    }
+
+    public func navigateToRoot(animated: Bool = true) {
+        navigateToRoot(in: selectedTab, animated: animated, selectTab: false)
+    }
+
+    // MARK: - Navigation APIs (specific tab)
+
+    /// Push a route onto a specific tab’s navigation stack.
+    ///
+    /// - Parameters:
+    ///   - selectTab: If `true`, this will switch the UI to the target tab before pushing.
+    public func navigate(to route: Route, in tab: Tab, animated: Bool = true, selectTab: Bool = true) {
+        if selectTab { select(tab: tab, animated: animated) }
+        if animated {
+            let _ = withAnimation {
+                paths[tab, default: []].append(route)
+            }
+        } else {
+            paths[tab, default: []].append(route)
+        }
+    }
+
+    /// Replace a tab’s entire navigation stack with a new ordered list of routes.
+    public func setPath(_ routes: [Route], in tab: Tab, animated: Bool = true, selectTab: Bool = true) {
+        if selectTab { select(tab: tab, animated: animated) }
+        if animated {
+            let _ = withAnimation {
+                paths[tab] = routes
+            }
+        } else {
+            paths[tab] = routes
+        }
+    }
+
+    public func replace(with route: Route, in tab: Tab, animated: Bool = true, selectTab: Bool = true) {
+        setPath([route], in: tab, animated: animated, selectTab: selectTab)
+    }
+
+    public func navigateBack(in tab: Tab, animated: Bool = true, selectTab: Bool = true) {
+        if selectTab { select(tab: tab, animated: animated) }
+        guard let current = paths[tab], !current.isEmpty else { return }
+        if animated {
+            let _ = withAnimation {
+                paths[tab]?.removeLast()
+            }
+        } else {
+            paths[tab]?.removeLast()
+        }
+    }
+
+    public func navigateBack(in tab: Tab, steps: Int, animated: Bool = true, selectTab: Bool = true) {
+        if selectTab { select(tab: tab, animated: animated) }
+        guard steps > 0, let current = paths[tab], !current.isEmpty else { return }
+        let safeSteps = min(steps, current.count)
+        if animated {
+            let _ = withAnimation {
+                paths[tab]?.removeLast(safeSteps)
+            }
+        } else {
+            paths[tab]?.removeLast(safeSteps)
+        }
+    }
+
+    public func popTo(_ route: Route, in tab: Tab, animated: Bool = true, selectTab: Bool = true) {
+        if selectTab { select(tab: tab, animated: animated) }
+        guard let current = paths[tab], let index = current.lastIndex(of: route) else { return }
+        let desiredCount = index + 1
+        let toRemove = current.count - desiredCount
+        guard toRemove > 0 else { return }
+        navigateBack(in: tab, steps: toRemove, animated: animated, selectTab: false)
+    }
+
+    public func navigateToRoot(in tab: Tab, animated: Bool = true, selectTab: Bool = true) {
+        if selectTab { select(tab: tab, animated: animated) }
+        if animated {
+            let _ = withAnimation {
+                paths[tab]?.removeAll()
+            }
+        } else {
+            paths[tab]?.removeAll()
+        }
+    }
+}
+
+/// A `TabView` host for any tab-based coordinator.
+///
+/// It renders one `NavigationStack` per tab and binds each stack to its tab-specific `[Route]` path.
+@MainActor
+public struct ViaTabNavigatorView<C: TabCoordinating>: View {
+    @StateObject private var coordinator: C
+
+    public init(coordinator: @autoclosure @escaping () -> C) {
+        _coordinator = StateObject(wrappedValue: coordinator())
+    }
+
+    public var body: some View {
+        TabView(selection: $coordinator.selectedTab) {
+            ForEach(coordinator.tabs, id: \.self) { tab in
+                NavigationStack(path: pathBinding(for: tab)) {
+                    coordinator.rootView(for: tab)
+                        .navigationDestination(for: C.Route.self) { route in
+                            coordinator.destinationView(for: route)
+                        }
+                }
+                .tag(tab)
+                .tabItem { coordinator.tabItem(for: tab) }
+            }
+        }
+        .environmentObject(coordinator)
+    }
+
+    private func pathBinding(for tab: C.Tab) -> Binding<[C.Route]> {
+        Binding(
+            get: { coordinator.paths[tab] ?? [] },
+            set: { coordinator.paths[tab] = $0 }
+        )
+    }
+}
+
 /// Backwards-friendly alias for the coordinator-based host view.
 ///
 /// Prefer `ViaNavigatorView` directly.
