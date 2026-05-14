@@ -99,6 +99,76 @@ struct HomeView: View {
 }
 ```
 
+### UIKit hosting (UINavigationController + SwiftUI screens)
+
+If your app shell is UIKit (or you’re migrating incrementally), you can host the same coordinator in a `UINavigationController` using `ViaNavigatorViewController`.
+
+- **Coordinator → UIKit**: updates to `coordinator.path` push/pop view controllers.
+- **UIKit → Coordinator**: back button and interactive swipe-back are observed and mirrored into `coordinator.path`.
+- **SwiftUI screens still work**: screens receive your concrete coordinator via `@EnvironmentObject` (same as the SwiftUI-only host).
+
+> Requires **iOS 16+** (same minimum as `NavigationStack`).
+
+```swift
+import UIKit
+import Via
+
+final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    var window: UIWindow?
+
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        guard let windowScene = scene as? UIWindowScene else { return }
+        let window = UIWindow(windowScene: windowScene)
+
+        window.rootViewController = ViaNavigatorViewController(coordinator: AppCoordinator())
+
+        self.window = window
+        window.makeKeyAndVisible()
+    }
+}
+```
+
+#### Minimal UIKit coordinator example
+
+This is the same coordinator style as the SwiftUI host; only the root host changes.
+
+```swift
+import SwiftUI
+import Via
+
+enum AppRoute: Hashable { case details(id: String) }
+
+@MainActor
+final class AppCoordinator: ViaNavigator<AppRoute> {
+    override func rootView() -> AnyView {
+        AnyView(HomeView())
+    }
+
+    override func destinationView(for route: AppRoute) -> AnyView {
+        switch route {
+        case .details(let id):
+            AnyView(Text("Details \(id)"))
+        }
+    }
+}
+
+struct HomeView: View {
+    @EnvironmentObject private var coordinator: AppCoordinator
+
+    var body: some View {
+        List {
+            Button("Push details") { coordinator.navigate(to: .details(id: "A1")) }
+            Button("Pop") { coordinator.navigateBack() }
+        }
+        .navigationTitle("Home")
+    }
+}
+```
+
 #### Implementation notes
 
 - **Single source of truth**: your `Route` type is the API for navigation; the coordinator is where routes become views.
@@ -260,6 +330,7 @@ This repo includes a demo target you can run in Xcode:
 - **Screens**:
   - `Via/Examples/SmapleView.swift` (parent/child navigation)
   - `Via/Examples/AuthImplementation.swift` (auth flow)
+  - `Via/Examples/UIKitImplementationSample.swift` (UIKit host + auth + tabs + modal present)
 
 Open a file above and run its `#Preview`.
 
