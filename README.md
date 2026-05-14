@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/via-banner.svg" alt="Via — SwiftUI Navigation Coordinator" width="100%" />
+</p>
+
 # ViaNavigation
 
 `ViaNavigation` (module name: `Via`) is a lightweight coordinator abstraction for SwiftUI’s `NavigationStack`.

@@ -1,0 +1,27 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1c1c1e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2c2c2e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#007AFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5E5CE6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)" rx="20" />
+  
+  <!-- Decorative Circle -->
+  <circle cx="100" cy="100" r="80" fill="#3a3a3c" opacity="0.5" />
+  
+  <!-- Main Title -->
+  <text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-family="SF Pro Display, sans-serif" font-size="120" font-weight="800" fill="url(#textGradient)">Via</text>
+  
+  <!-- Subtitle -->
+  <text x="50%" y="65%" dominant-baseline="middle" text-anchor="middle" font-family="SF Pro Text, sans-serif" font-size="32" fill="#ffffff" opacity="0.9">SwiftUI Navigation Coordinator</text>
+  
+  <!-- Tagline -->
+  <text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" text-rendering="geometricPrecision" font-family="SF Pro Text, sans-serif" font-size="24" fill="#8e8e93">Lightweight " Type-Safe " Native</text>
+</svg>
