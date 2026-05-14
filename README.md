@@ -1,12 +1,14 @@
 <p align="center">
-  <img src="assets/via-banner.svg" alt="Via — SwiftUI Navigation Coordinator" width="100%" />
+  <img src="assets/via-banner.svg" alt="Via Banner" width="100%">
+</p>
+
+<p align="center">
+  <strong>Via</strong> is a lightweight coordinator abstraction for SwiftUI’s <code>NavigationStack</code>.
+  <br>
+  <em>Simplify your navigation flow by separating state from view construction.</em>
 </p>
 
 # ViaNavigation
-
-`ViaNavigation` (module name: `Via`) is a lightweight coordinator abstraction for SwiftUI’s `NavigationStack`.
-
-It keeps **navigation state** and **destination view construction** in one place (a coordinator), while still using SwiftUI’s native navigation APIs.
 
 ## How to use the component
 
