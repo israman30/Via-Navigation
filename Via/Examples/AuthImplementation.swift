@@ -1,7 +1,18 @@
 import SwiftUI
 import Via
 
-// MARK: - Login / Signup flow (Debug-only demo)
+// MARK: - Auth flow sample (Debug-only demo)
+//
+// This file demonstrates a minimal auth navigation flow using `ViaNavigator`.
+//
+// Flow:
+// - **Login** is the root screen.
+// - Tapping **Create an account** pushes **Signup** (`.signup` route).
+// - Successful **Login** or **Signup** flips `isAuthenticated` and shows **Home** as the new root.
+// - **Logout** clears auth state and returns to **Login**.
+//
+// The important idea: authentication changes *which root view is shown*, while `Route` only
+// models screens that are pushed on top of that root.
 
 #if DEBUG
 
@@ -18,15 +29,19 @@ public struct AuthFlowRootView: View {
 }
 
 private enum AuthRoute: Hashable {
+    /// Create-account screen pushed from `LoginView`.
     case signup
 }
 
 @MainActor
 private final class AuthCoordinator: ViaNavigator<AuthRoute> {
+    /// When `true`, `rootView()` renders `HomeView`; otherwise it renders `LoginView`.
     @Published private(set) var isAuthenticated = false
+    /// Demo-only: used to display which account is "logged in".
     @Published private(set) var currentEmail: String?
 
     override func rootView() -> AnyView {
+        // Root selection is driven by auth state.
         if isAuthenticated {
             AnyView(HomeView(email: currentEmail ?? "user@example.com"))
         } else {
@@ -35,18 +50,25 @@ private final class AuthCoordinator: ViaNavigator<AuthRoute> {
     }
 
     override func destinationView(for route: AuthRoute) -> AnyView {
+        // Pushed destinations are built here (one switch case per route).
         switch route {
         case .signup:
             AnyView(SignupView())
         }
     }
 
+    /// Marks the session as authenticated and returns to the root.
+    ///
+    /// We call `navigateToRoot(animated: false)` so if the user completed signup from a pushed
+    /// screen, the stack is cleared immediately and the new root (`HomeView`) appears without a
+    /// pop animation fighting the root swap.
     func finishAuthentication(email: String) {
         currentEmail = email
         isAuthenticated = true
         navigateToRoot(animated: false)
     }
 
+    /// Clears auth state and returns to the login root.
     func logout() {
         isAuthenticated = false
         currentEmail = nil
@@ -85,6 +107,7 @@ private struct LoginView: View {
 
                 Button("Create an account") {
                     errorMessage = nil
+                    // Push the signup screen on top of the login root.
                     coordinator.navigate(to: .signup)
                 }
             }
@@ -149,6 +172,7 @@ private struct SignupView: View {
 
                 Button("Back to login") {
                     errorMessage = nil
+                    // Pop back to the login root.
                     coordinator.navigateBack()
                 }
             }
