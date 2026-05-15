@@ -1,6 +1,7 @@
 #if canImport(UIKit)
 import UIKit
 import SwiftUI
+import Via
 
 // MARK: - Minimal UIKit setup sample
 
@@ -48,28 +49,100 @@ private struct UIKitSetupSamplePreview: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }
 
+// MARK: - Via coordinator (sample embedded in UIKit)
+
+@available(iOS 16.0, *)
+private enum SomeRoute: Hashable {
+    case childOne
+    case childTwo
+}
+
+@available(iOS 16.0, *)
+@MainActor
+private final class SomeCoordinator: ViaNavigator<SomeRoute> {
+    override func rootView() -> AnyView {
+        AnyView(SomeRootView())
+    }
+
+    override func destinationView(for route: SomeRoute) -> AnyView {
+        switch route {
+        case .childOne:
+            AnyView(ChildOneView())
+        case .childTwo:
+            AnyView(ChildTwoView())
+        }
+    }
+}
+
+@available(iOS 16.0, *)
+private struct SomeRootView: View {
+    @EnvironmentObject private var coordinator: SomeCoordinator
+
+    var body: some View {
+        List {
+            Section("Navigate") {
+                Button("Go to Child One") { coordinator.navigate(to: .childOne) }
+                Button("Go to Child Two") { coordinator.navigate(to: .childTwo) }
+            }
+        }
+        .navigationTitle("Root")
+    }
+}
+
+@available(iOS 16.0, *)
+private struct ChildOneView: View {
+    @EnvironmentObject private var coordinator: SomeCoordinator
+
+    var body: some View {
+        List {
+            Text("Child One")
+            Button("Pop") { coordinator.navigateBack() }
+            Button("Pop to root") { coordinator.navigateToRoot() }
+        }
+        .navigationTitle("Child One")
+    }
+}
+
+@available(iOS 16.0, *)
+private struct ChildTwoView: View {
+    @EnvironmentObject private var coordinator: SomeCoordinator
+
+    var body: some View {
+        List {
+            Text("Child Two")
+            Button("Pop") { coordinator.navigateBack() }
+            Button("Pop to root") { coordinator.navigateToRoot() }
+        }
+        .navigationTitle("Child Two")
+    }
+}
+
+@available(iOS 16.0, *)
 public final class SomeViewController: UIViewController {
-    private lazy var label: UILabel = {
-        let label = UILabel()
-        label.text = "This is SomeViewController"
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
+    private let coordinator = SomeCoordinator()
+    private var hostingController: UIViewController?
 
     public override func viewDidLoad() {
         super.viewDidLoad()
+
         title = "Some"
         view.backgroundColor = .systemBackground
+        navigationController?.setNavigationBarHidden(true, animated: false)
 
-        view.addSubview(label)
+        let root = ViaNavigatorView(coordinator: self.coordinator)
+        let hosting = UIHostingController(rootView: AnyView(root.environmentObject(coordinator)))
+
+        addChild(hosting)
+        view.addSubview(hosting.view)
+        hosting.view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            label.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
-            label.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24),
+            hosting.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            hosting.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            hosting.view.topAnchor.constraint(equalTo: view.topAnchor),
+            hosting.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+        hosting.didMove(toParent: self)
+        hostingController = hosting
     }
 }
 

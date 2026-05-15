@@ -143,7 +143,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
    - store it in `self.window`
    - call `window.makeKeyAndVisible()`
 
-Minimal copy/paste sample in this repo: `Via/Examples/UIKitSetupSample.swift` (scene setup + UIKit root view controller).
+Minimal copy/paste sample in this repo: `Via/Examples/UIKitSetupSample.swift` (scene setup + UIKit root view controller that embeds a Via coordinator with two child screens).
 
 If you want the *absolute smallest* root creation, you can wrap it like:
 
@@ -154,6 +154,42 @@ import Via
 @MainActor
 func makeRootViewController() -> UIViewController {
     ViaNavigatorViewController(coordinator: AppCoordinator())
+}
+```
+
+#### Embed a Via coordinator inside an existing `UIViewController`
+
+If you already have a UIKit screen (e.g. `SomeViewController`) and you want that controller to **host a Via flow** (root + pushed child screens), embed `ViaNavigatorView(coordinator:)` using a `UIHostingController`.
+
+Working sample: `Via/Examples/UIKitSetupSample.swift` (`SomeViewController`).
+
+```swift
+import UIKit
+import SwiftUI
+import Via
+
+final class SomeViewController: UIViewController {
+    private let coordinator = SomeCoordinator()
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        let root = ViaNavigatorView(coordinator: coordinator)
+        let hosting = UIHostingController(
+            rootView: AnyView(root.environmentObject(coordinator))
+        )
+
+        addChild(hosting)
+        view.addSubview(hosting.view)
+        hosting.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hosting.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            hosting.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            hosting.view.topAnchor.constraint(equalTo: view.topAnchor),
+            hosting.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+        hosting.didMove(toParent: self)
+    }
 }
 ```
 
@@ -355,7 +391,7 @@ This repo includes a demo target you can run in Xcode:
 - **Screens**:
   - `Via/Examples/SmapleView.swift` (parent/child navigation)
   - `Via/Examples/AuthImplementation.swift` (auth flow)
-  - `Via/Examples/UIKitSetupSample.swift` (UIKit scene setup + UIKit root)
+  - `Via/Examples/UIKitSetupSample.swift` (UIKit scene setup + `SomeViewController` embedding a Via coordinator w/ 2 child views)
   - `Via/Examples/UIKitImplementationSample.swift` (UIKit host + auth + tabs + modal present)
 
 Open a file above and run its `#Preview`.
