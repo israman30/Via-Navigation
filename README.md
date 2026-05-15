@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Via</strong> is a lightweight coordinator abstraction for SwiftUI’s <code>NavigationStack</code>.
+  <strong>Via</strong> is a lightweight coordinator abstraction for iOS <code>(UIKit/SwiftUI)</code>’s <code>NavigationStack</code>.
   <br>
   <em>Simplify your navigation flow by separating state from view construction.</em>
 </p>
