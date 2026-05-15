@@ -343,7 +343,7 @@ Open a file above and run its `#Preview`.
 
 ## Supported versions
 
-Defined in `Via/Package.swift`:
+Defined in `Package.swift`:
 
 - **iOS**: 16+
 - **macOS**: 13+
