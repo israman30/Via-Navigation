@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/via.svg" alt="Via Icon" width="140">
+  <img src="assets/via.svg" alt="Via Icon" width="160">
 </p>
 
 <p align="center">
