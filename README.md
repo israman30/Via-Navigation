@@ -132,6 +132,31 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 }
 ```
 
+#### UIKit setup (step-by-step: create root + update `UIWindowScene`)
+
+1) **Create a coordinator** (your routes + view mapping).
+2) **Create the root view controller** with `ViaNavigatorViewController(coordinator:)`.
+3) **Update the window scene** in `scene(_:willConnectTo:options:)`:
+   - cast `scene` → `UIWindowScene`
+   - create `UIWindow(windowScene:)`
+   - set `window.rootViewController`
+   - store it in `self.window`
+   - call `window.makeKeyAndVisible()`
+
+Minimal copy/paste sample in this repo: `Via/Examples/UIKitSetupSample.swift` (scene setup + UIKit root view controller).
+
+If you want the *absolute smallest* root creation, you can wrap it like:
+
+```swift
+import UIKit
+import Via
+
+@MainActor
+func makeRootViewController() -> UIViewController {
+    ViaNavigatorViewController(coordinator: AppCoordinator())
+}
+```
+
 #### Minimal UIKit coordinator example
 
 This is the same coordinator style as the SwiftUI host; only the root host changes.
@@ -330,6 +355,7 @@ This repo includes a demo target you can run in Xcode:
 - **Screens**:
   - `Via/Examples/SmapleView.swift` (parent/child navigation)
   - `Via/Examples/AuthImplementation.swift` (auth flow)
+  - `Via/Examples/UIKitSetupSample.swift` (UIKit scene setup + UIKit root)
   - `Via/Examples/UIKitImplementationSample.swift` (UIKit host + auth + tabs + modal present)
 
 Open a file above and run its `#Preview`.
