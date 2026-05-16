@@ -3,7 +3,6 @@ import UIKit
 import SwiftUI
 import Combine
 
-@available(iOS 16.0, *)
 @MainActor
 /// A UIKit host for `ViaNavigator` that drives a `UINavigationController`.
 ///
@@ -138,7 +137,6 @@ public final class ViaNavigatorViewController<Route: Hashable, C: ViaNavigator<R
     }
 }
 
-@available(iOS 16.0, *)
 private struct ViaUIKitRootView<C: Coordinating>: View {
     @ObservedObject var coordinator: C
 
@@ -147,7 +145,6 @@ private struct ViaUIKitRootView<C: Coordinating>: View {
     }
 }
 
-@available(iOS 16.0, *)
 private struct ViaUIKitDestinationView<C: Coordinating>: View {
     @ObservedObject var coordinator: C
     let route: C.Route

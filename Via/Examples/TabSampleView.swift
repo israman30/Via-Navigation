@@ -24,6 +24,7 @@ import Via
 /// Usage:
 /// - Run the `#Preview` at the bottom of the file, or
 /// - Drop `TabSampleRootView()` into any SwiftUI hierarchy in a Debug build.
+@available(iOS 16.0, *)
 public struct TabSampleRootView: View {
     public init() {}
 
@@ -35,6 +36,7 @@ public struct TabSampleRootView: View {
 /// Tabs that appear in the `TabView`.
 ///
 /// Each tab gets its own independent navigation stack.
+@available(iOS 16.0, *)
 private enum AppTab: Hashable {
     case feed
     case settings
@@ -44,6 +46,7 @@ private enum AppTab: Hashable {
 ///
 /// Routes are shared across tabs in this sample, but they don't have to be—your coordinator can
 /// choose which routes are reachable from which tab.
+@available(iOS 16.0, *)
 private enum AppRoute: Hashable {
     case details(id: String)
     case about
@@ -56,6 +59,7 @@ private enum AppRoute: Hashable {
 /// - `ViaTabNavigatorView` binds each tab’s `NavigationStack(path:)` to `paths[tab]`.
 /// - Switching tabs preserves each tab’s stack automatically because each tab is backed by a
 ///   different path array.
+@available(iOS 16.0, *)
 @MainActor
 private final class TabCoordinator: ViaTabNavigator<AppTab, AppRoute> {
     init() {
@@ -90,6 +94,7 @@ private final class TabCoordinator: ViaTabNavigator<AppTab, AppRoute> {
     }
 }
 
+@available(iOS 16.0, *)
 private struct FeedRoot: View {
     @EnvironmentObject private var coordinator: TabCoordinator
 
@@ -113,6 +118,7 @@ private struct FeedRoot: View {
     }
 }
 
+@available(iOS 16.0, *)
 private struct SettingsRoot: View {
     @EnvironmentObject private var coordinator: TabCoordinator
 
@@ -134,6 +140,7 @@ private struct SettingsRoot: View {
     }
 }
 
+@available(iOS 16.0, *)
 private struct DetailsView: View {
     let id: String
     @EnvironmentObject private var coordinator: TabCoordinator
@@ -163,6 +170,7 @@ private struct DetailsView: View {
     }
 }
 
+@available(iOS 16.0, *)
 private struct AboutView: View {
     @EnvironmentObject private var coordinator: TabCoordinator
 
@@ -185,8 +193,11 @@ private struct AboutView: View {
     }
 }
 
-#Preview {
-    TabSampleRootView()
+@available(iOS 16.0, *)
+struct TabSampleRootView_Previews: PreviewProvider {
+    static var previews: some View {
+        TabSampleRootView()
+    }
 }
 #endif
 
