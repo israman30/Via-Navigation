@@ -1,6 +1,7 @@
 // The Swift Programming Language
 // https://docs.swift.org/swift-book
 
+import Foundation
 import SwiftUI
 import Combine
 
@@ -72,6 +73,7 @@ public protocol Coordinating: ObservableObject {
 
 open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
     @Published public var path: [Route] = []
+    public let urlRouter = ViaURLRouter<Route>()
     
     public init() {}
     
@@ -114,6 +116,37 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
     /// Replace the stack with a single route.
     public func replace(with route: Route, animated: Bool = true) {
         setPath([route], animated: animated)
+    }
+
+    /// Handle a deep link URL by resolving it through `urlRouter`.
+    ///
+    /// Returns `true` if a registered pattern matched and produced navigation.
+    @discardableResult
+    public func handle(url: URL, animated: Bool = true) -> Bool {
+        guard let match = urlRouter.resolve(url) else { return false }
+
+        switch match.navigation.mode {
+        case .setPath:
+            setPath(match.navigation.routes, animated: animated)
+        case .push:
+            for route in match.navigation.routes {
+                navigate(to: route, animated: animated)
+            }
+        case .replace:
+            if let first = match.navigation.routes.first, match.navigation.routes.count == 1 {
+                replace(with: first, animated: animated)
+            } else {
+                setPath(match.navigation.routes, animated: animated)
+            }
+        }
+        return true
+    }
+
+    /// Convenience overload for `handle(url:)`.
+    @discardableResult
+    public func handle(url: String, animated: Bool = true) -> Bool {
+        guard let u = URL(string: url) else { return false }
+        return handle(url: u, animated: animated)
     }
     
     /// Pop one screen.
@@ -227,6 +260,7 @@ open class ViaTabNavigator<Tab: Hashable, Route: Hashable>: ObservableObject, Ta
     public let tabs: [Tab]
     @Published public var selectedTab: Tab
     @Published public var paths: [Tab: [Route]]
+    public let urlRouter = ViaTabURLRouter<Tab, Route>()
 
     public init(tabs: [Tab], selectedTab: Tab) {
         self.tabs = tabs
@@ -259,6 +293,43 @@ open class ViaTabNavigator<Tab: Hashable, Route: Hashable>: ObservableObject, Ta
         } else {
             selectedTab = tab
         }
+    }
+
+    /// Handle a deep link URL by resolving it through `urlRouter`.
+    ///
+    /// Returns `true` if a registered pattern matched and produced navigation.
+    @discardableResult
+    public func handle(url: URL, animated: Bool = true) -> Bool {
+        guard let match = urlRouter.resolve(url) else { return false }
+        let nav = match.navigation
+
+        let targetTab = nav.tab ?? selectedTab
+        if nav.tab != nil, nav.selectTab {
+            select(tab: targetTab, animated: animated)
+        }
+
+        switch nav.mode {
+        case .setPath:
+            setPath(nav.routes, in: targetTab, animated: animated, selectTab: false)
+        case .push:
+            for route in nav.routes {
+                navigate(to: route, in: targetTab, animated: animated, selectTab: false)
+            }
+        case .replace:
+            if let first = nav.routes.first, nav.routes.count == 1 {
+                replace(with: first, in: targetTab, animated: animated, selectTab: false)
+            } else {
+                setPath(nav.routes, in: targetTab, animated: animated, selectTab: false)
+            }
+        }
+        return true
+    }
+
+    /// Convenience overload for `handle(url:)`.
+    @discardableResult
+    public func handle(url: String, animated: Bool = true) -> Bool {
+        guard let u = URL(string: url) else { return false }
+        return handle(url: u, animated: animated)
     }
 
     // MARK: - Navigation APIs (selected tab)

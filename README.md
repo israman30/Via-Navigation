@@ -386,6 +386,72 @@ From any view that has the coordinator via `@EnvironmentObject`:
 - **Pop to root**: `navigateToRoot(animated:)`
 - **Replace stack / deep link**: `setPath(_:animated:)` and `replace(with:animated:)`
 
+## Deep linking / URL routing
+
+Via includes a tiny URL router you can register patterns against, then call `handle(url:)` to perform navigation.
+
+- **Where it lives**: every `ViaNavigator` has `urlRouter`, and every `ViaTabNavigator` has its own `urlRouter`.
+- **Return value**: `handle(url:)` returns `true` when a registered route matched and navigation was applied.
+- **Navigation modes**: handlers can return `.setPath(...)`, `.push(...)`, or `.replace(with:)`.
+
+### 1) Register URL patterns
+
+```swift
+import Via
+
+enum AppRoute: Hashable {
+    case settings
+    case details(id: String)
+}
+
+@MainActor
+final class AppCoordinator: ViaNavigator<AppRoute> {
+    override init() {
+        super.init()
+
+        urlRouter.register("myapp://profile/settings") { _ in
+            .setPath([.settings])
+        }
+
+        urlRouter.register("myapp://details/:id") { req in
+            guard let id = req.pathParameters["id"] else { return nil }
+            return .replace(with: .details(id: id))
+        }
+    }
+
+    // rootView() + destinationView(for:) ...
+}
+```
+
+Pattern notes:
+- `:param` captures a path parameter (available in `req.pathParameters`).
+- Query items (like `?ref=...`) are available in `req.queryParameters`.
+- `*` matches the remainder of the path (useful for “catch-all” routes).
+
+### 2) Handle incoming URLs
+
+- **UIKit (SceneDelegate)**:
+
+```swift
+func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    guard let url = URLContexts.first?.url else { return }
+    coordinator.handle(url: url)
+}
+```
+
+- **SwiftUI**: attach `onOpenURL` anywhere you can call into your coordinator (a simple place is your `rootView()`):
+
+```swift
+override func rootView() -> AnyView {
+    AnyView(
+        HomeView()
+            .onOpenURL { [weak self] url in
+                _ = self?.handle(url: url)
+            }
+    )
+}
+```
+
 ## Examples / Preview
 
 This repo includes a demo target you can run in Xcode:
@@ -393,7 +459,9 @@ This repo includes a demo target you can run in Xcode:
 - **Scheme/target**: `ViaDemoUI`
 - **Screens**:
   - `Via/Examples/SmapleView.swift` (parent/child navigation)
+  - `Via/Examples/DeepLinkSampleView.swift` (deep linking / URL routing)
   - `Via/Examples/AuthImplementation.swift` (auth flow)
+  - `Via/Examples/TabSampleView.swift` (TabView + one NavigationStack per tab)
   - `Via/Examples/UIKitSetupSample.swift` (UIKit scene setup + `SomeViewController` hosting a `UITableView` root; tap cell → Via pushes SwiftUI detail)
   - `Via/Examples/UIKitImplementationSample.swift` (UIKit host + auth + tabs + modal present)
 
