@@ -53,8 +53,7 @@ private struct UIKitSetupSamplePreview: UIViewControllerRepresentable {
 
 @available(iOS 16.0, *)
 private enum SomeRoute: Hashable {
-    case childOne
-    case childTwo
+    case detail(id: Int)
 }
 
 @available(iOS 16.0, *)
@@ -66,10 +65,8 @@ private final class SomeCoordinator: ViaNavigator<SomeRoute> {
 
     override func destinationView(for route: SomeRoute) -> AnyView {
         switch route {
-        case .childOne:
-            AnyView(ChildOneView())
-        case .childTwo:
-            AnyView(ChildTwoView())
+        case .detail(let id):
+            AnyView(SomeDetailView(id: id))
         }
     }
 }
@@ -79,41 +76,86 @@ private struct SomeRootView: View {
     @EnvironmentObject private var coordinator: SomeCoordinator
 
     var body: some View {
+        SomeTableViewControllerHost(coordinator: coordinator)
+            .navigationTitle("Items")
+    }
+}
+
+@available(iOS 16.0, *)
+private struct SomeDetailView: View {
+    @EnvironmentObject private var coordinator: SomeCoordinator
+    let id: Int
+
+    var body: some View {
         List {
-            Section("Navigate") {
-                Button("Go to Child One") { coordinator.navigate(to: .childOne) }
-                Button("Go to Child Two") { coordinator.navigate(to: .childTwo) }
+            Text("Detail id = \(id)")
+            Button("Pop") {
+                coordinator.navigateBack()
+            }
+            Button("Pop to root") {
+                coordinator.navigateToRoot()
             }
         }
-        .navigationTitle("Root")
+        .navigationTitle("Detail")
     }
 }
 
 @available(iOS 16.0, *)
-private struct ChildOneView: View {
-    @EnvironmentObject private var coordinator: SomeCoordinator
+private struct SomeTableViewControllerHost: UIViewControllerRepresentable {
+    @ObservedObject var coordinator: SomeCoordinator
 
-    var body: some View {
-        List {
-            Text("Child One")
-            Button("Pop") { coordinator.navigateBack() }
-            Button("Pop to root") { coordinator.navigateToRoot() }
-        }
-        .navigationTitle("Child One")
+    func makeUIViewController(context: Context) -> UITableViewController {
+        SomeItemsTableViewController(coordinator: coordinator)
     }
+
+    func updateUIViewController(_ uiViewController: UITableViewController, context: Context) {}
 }
 
 @available(iOS 16.0, *)
-private struct ChildTwoView: View {
-    @EnvironmentObject private var coordinator: SomeCoordinator
+@MainActor
+private final class SomeItemsTableViewController: UITableViewController {
+    private let coordinator: SomeCoordinator
+    private let items: [Int] = Array(1...20)
 
-    var body: some View {
-        List {
-            Text("Child Two")
-            Button("Pop") { coordinator.navigateBack() }
-            Button("Pop to root") { coordinator.navigateToRoot() }
-        }
-        .navigationTitle("Child Two")
+    init(coordinator: SomeCoordinator) {
+        self.coordinator = coordinator
+        super.init(style: .insetGrouped)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        tableView.allowsSelection = true
+    }
+
+    override func numberOfSections(in tableView: UITableView) -> Int {
+        1
+    }
+
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        items.count
+    }
+
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        let id = items[indexPath.row]
+        var config = cell.defaultContentConfiguration()
+        config.text = "Item \(id)"
+        config.secondaryText = "Tap to navigate via Via"
+        cell.contentConfiguration = config
+        cell.accessoryType = .disclosureIndicator
+        return cell
+    }
+
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let id = items[indexPath.row]
+        tableView.deselectRow(at: indexPath, animated: true)
+        coordinator.navigate(to: .detail(id: id))
     }
 }
 
