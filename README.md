@@ -386,6 +386,31 @@ From any view that has the coordinator via `@EnvironmentObject`:
 - **Pop to root**: `navigateToRoot(animated:)`
 - **Replace stack / deep link**: `setPath(_:animated:)` and `replace(with:animated:)`
 
+### Transition customization (push + present)
+
+Via supports a transition-aware API for:
+
+- **Custom push animations** (e.g. fade)
+- **Modal presentation** with configurable sheet detents
+
+```swift
+@EnvironmentObject private var router: AppCoordinator
+
+// Present a sheet with detents
+router.present(
+    TermsView(),
+    style: .sheet(detents: [.medium(), .large()])
+)
+
+// Push with a custom animation
+router.push(.details(id: "A1"), animation: .fade)
+```
+
+Notes:
+- In **UIKit hosting** (`ViaNavigatorViewController`), `.fade` is a real cross-fade push transition.
+- In **SwiftUI hosting** (`NavigationStack`), Apple controls the actual push transition; Via uses the
+  provided animation when mutating `path`.
+
 ## Deep linking / URL routing
 
 Via includes a tiny URL router you can register patterns against, then call `handle(url:)` to perform navigation.

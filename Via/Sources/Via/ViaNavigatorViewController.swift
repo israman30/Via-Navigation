@@ -2,6 +2,7 @@
 import UIKit
 import SwiftUI
 import Combine
+import QuartzCore
 
 @MainActor
 /// A UIKit host for `ViaNavigator` that drives a `UINavigationController`.
@@ -18,15 +19,18 @@ import Combine
 /// UIKit does not expose a reliable way to recover the original `Route` value from an arbitrary
 /// view controller. This implementation therefore syncs pops by stack *depth* and assumes the
 /// visible controller stack corresponds to the prefix of `path`.
-public final class ViaNavigatorViewController<Route: Hashable, C: ViaNavigator<Route>>: UIViewController, UINavigationControllerDelegate {
+public final class ViaNavigatorViewController<Route: Hashable, C: ViaNavigator<Route>>: UIViewController, UINavigationControllerDelegate, UIAdaptivePresentationControllerDelegate {
     public let coordinator: C
 
     private let navController = UINavigationController()
     private var cancellable: AnyCancellable?
+    private var presentationCancellable: AnyCancellable?
 
     private var rootViewController: UIViewController?
     private var currentPath: [Route] = []
     private var isSyncing = false
+    private var isSyncingPresentation = false
+    private var presentedID: UUID?
 
     /// Creates the host controller and instantiates the coordinator once.
     ///
@@ -64,6 +68,13 @@ public final class ViaNavigatorViewController<Route: Hashable, C: ViaNavigator<R
                 }
                 self.apply(path: newPath, animated: true)
             }
+
+        presentationCancellable = coordinator.$presented
+            .sink { [weak self] presentation in
+                guard let self else { return }
+                guard !self.isSyncingPresentation else { return }
+                self.apply(presentation: presentation)
+            }
     }
 
     private func makeRootViewController() -> UIViewController {
@@ -88,8 +99,13 @@ public final class ViaNavigatorViewController<Route: Hashable, C: ViaNavigator<R
 
         if newPath.count >= oldPath.count, Array(newPath.prefix(oldPath.count)) == oldPath {
             let toPush = newPath.dropFirst(oldPath.count)
+            var animations = animated
+                ? coordinator._consumePendingUIKitPushAnimations(count: toPush.count)
+                : Array(repeating: .none, count: toPush.count)
             for route in toPush {
-                navController.pushViewController(makeDestinationViewController(for: route), animated: animated)
+                let vc = makeDestinationViewController(for: route)
+                let anim = animations.isEmpty ? (animated ? .native : .none) : animations.removeFirst()
+                push(vc, animation: anim)
             }
         } else if oldPath.count >= newPath.count, Array(oldPath.prefix(newPath.count)) == newPath {
             let targetIndex = newPath.count
@@ -104,6 +120,61 @@ public final class ViaNavigatorViewController<Route: Hashable, C: ViaNavigator<R
         }
 
         currentPath = newPath
+    }
+
+    private func push(_ viewController: UIViewController, animation: ViaPushAnimation) {
+        switch animation {
+        case .native:
+            navController.pushViewController(viewController, animated: true)
+        case .none:
+            navController.pushViewController(viewController, animated: false)
+        case .fade:
+            let transition = CATransition()
+            transition.type = .fade
+            transition.duration = 0.25
+            navController.view.layer.add(transition, forKey: kCATransition)
+            navController.pushViewController(viewController, animated: false)
+        }
+    }
+
+    private func apply(presentation: ViaPresentation?) {
+        if let presentation {
+            guard presentedID != presentation.id else { return }
+
+            if navController.presentedViewController != nil {
+                navController.dismiss(animated: false)
+            }
+
+            let root = AnyView(presentation.content.environmentObject(coordinator))
+            let hosting = UIHostingController(rootView: root)
+            hosting.presentationController?.delegate = self
+
+            switch presentation.style {
+            case .fullScreen:
+                hosting.modalPresentationStyle = .fullScreen
+            case .sheet(let detents):
+                hosting.modalPresentationStyle = .pageSheet
+                if #available(iOS 15.0, *), let sheet = hosting.sheetPresentationController {
+                    let normalized = ViaSheetDetent._normalized(detents)
+                    sheet.detents = normalized.map { $0.toUIKitDetent() }
+                }
+            }
+
+            presentedID = presentation.id
+            navController.present(hosting, animated: presentation.animated)
+        } else {
+            presentedID = nil
+            guard navController.presentedViewController != nil else { return }
+            navController.dismiss(animated: true)
+        }
+    }
+
+    public func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        guard !isSyncingPresentation else { return }
+        isSyncingPresentation = true
+        coordinator.presented = nil
+        presentedID = nil
+        isSyncingPresentation = false
     }
 
     private func embed(navigationController: UINavigationController) {
