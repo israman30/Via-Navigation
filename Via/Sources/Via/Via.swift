@@ -71,13 +71,18 @@ public protocol Coordinating: ObservableObject {
 ///   `NavigationStack(path:)` with type safety and without type erasure.
 /// - View construction returns `AnyView` to keep the API surface small and easy to override
 
-open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
+open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating, ViaPresentationCoordinating {
     @Published public var path: [Route] = []
+    /// Current modal presentation request, observed by Via hosts (SwiftUI + UIKit).
+    @Published public var presented: ViaPresentation?
     /// URL router for deep links/app links.
     ///
     /// Register patterns in your coordinator’s initializer and then call `handle(url:)` when your
     /// app receives a URL (e.g. `scene(_:openURLContexts:)` in UIKit or `onOpenURL` in SwiftUI).
     public let urlRouter = ViaURLRouter<Route>()
+    
+    // UIKit-only push animation support (consumed by `ViaNavigatorViewController`).
+    var _pendingUIKitPushAnimations: [ViaPushAnimation] = []
     
     public init() {}
     
@@ -95,13 +100,33 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
     /// Call this from any screen that has access to the coordinator, e.g.:
     /// `@EnvironmentObject private var coordinator: MyCoordinator`.
     public func navigate(to route: Route, animated: Bool = true) {
-        if animated {
-            let _ = withAnimation {
-                path.append(route)
-            }
+        push(route, animation: animated ? .native : .none)
+    }
+
+    /// Push a route with a specific animation.
+    ///
+    /// - Important: In SwiftUI (`NavigationStack`) Apple controls the actual push transition.
+    ///   This parameter selects the `withAnimation(...)` used when mutating `path`, and enables
+    ///   real custom transitions when hosted in `ViaNavigatorViewController` (UIKit).
+    public func push(_ route: Route, animation: ViaPushAnimation = .native) {
+        _pendingUIKitPushAnimations.append(animation)
+        if let anim = animation.swiftUIAnimation {
+            let _ = withAnimation(anim) { path.append(route) }
         } else {
             path.append(route)
         }
+    }
+    
+    func _consumePendingUIKitPushAnimations(count: Int) -> [ViaPushAnimation] {
+        guard count > 0 else { return [] }
+        let available = _pendingUIKitPushAnimations.count
+        let take = min(count, available)
+        let head = Array(_pendingUIKitPushAnimations.prefix(take))
+        if take > 0 {
+            _pendingUIKitPushAnimations.removeFirst(take)
+        }
+        if head.count == count { return head }
+        return head + Array(repeating: .native, count: count - head.count)
     }
     
     /// Replace the entire navigation stack with a new ordered list of routes.
@@ -120,6 +145,27 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
     /// Replace the stack with a single route.
     public func replace(with route: Route, animated: Bool = true) {
         setPath([route], animated: animated)
+    }
+
+    // MARK: - Presentation APIs
+    
+    /// Present an arbitrary SwiftUI view modally.
+    public func present<Content: View>(
+        _ content: Content,
+        style: ViaPresentationStyle = .sheet(),
+        animated: Bool = true
+    ) {
+        presented = ViaPresentation(style: style, content: AnyView(content), animated: animated)
+    }
+
+    /// Dismiss the currently presented modal (if any).
+    public func dismissPresented(animated: Bool = true) {
+        if var current = presented {
+            current.animated = animated
+            presented = nil
+        } else {
+            presented = nil
+        }
     }
 
     /// Handle a deep link URL by resolving it through `urlRouter`.
@@ -231,6 +277,7 @@ public struct ViaNavigatorView<C: Coordinating>: View {
                 }
         }
         .environmentObject(coordinator)
+        .modifier(ViaPresentationModifier(coordinator: coordinator, presenting: coordinator as? any ViaPresentationCoordinating))
     }
 }
 
@@ -266,10 +313,12 @@ public protocol TabCoordinating: ObservableObject {
 /// Base coordinator class for apps using `TabView` + one `NavigationStack` per tab.
 ///
 /// Each tab has its own independent `[Route]` path, so switching tabs preserves each tab’s stack.
-open class ViaTabNavigator<Tab: Hashable, Route: Hashable>: ObservableObject, TabCoordinating {
+open class ViaTabNavigator<Tab: Hashable, Route: Hashable>: ObservableObject, TabCoordinating, ViaPresentationCoordinating {
     public let tabs: [Tab]
     @Published public var selectedTab: Tab
     @Published public var paths: [Tab: [Route]]
+    /// Current modal presentation request, observed by Via hosts (SwiftUI + UIKit).
+    @Published public var presented: ViaPresentation?
     /// URL router for tab-aware deep links/app links.
     ///
     /// Register patterns in your coordinator’s initializer and return `ViaTabURLNavigation` to
@@ -354,7 +403,21 @@ open class ViaTabNavigator<Tab: Hashable, Route: Hashable>: ObservableObject, Ta
     // MARK: - Navigation APIs (selected tab)
 
     public func navigate(to route: Route, animated: Bool = true) {
-        navigate(to: route, in: selectedTab, animated: animated, selectTab: false)
+        push(route, animation: animated ? .native : .none)
+    }
+
+    /// Push a route on the selected tab with a specific animation.
+    ///
+    /// - Important: In SwiftUI (`NavigationStack`) Apple controls the actual push transition.
+    ///   This parameter selects the `withAnimation(...)` used when mutating the tab path.
+    public func push(_ route: Route, animation: ViaPushAnimation = .native) {
+        if let anim = animation.swiftUIAnimation {
+            let _ = withAnimation(anim) {
+                paths[selectedTab, default: []].append(route)
+            }
+        } else {
+            paths[selectedTab, default: []].append(route)
+        }
     }
 
     public func setPath(_ routes: [Route], animated: Bool = true) {
@@ -363,6 +426,27 @@ open class ViaTabNavigator<Tab: Hashable, Route: Hashable>: ObservableObject, Ta
 
     public func replace(with route: Route, animated: Bool = true) {
         replace(with: route, in: selectedTab, animated: animated, selectTab: false)
+    }
+
+    // MARK: - Presentation APIs
+    
+    /// Present an arbitrary SwiftUI view modally.
+    public func present<Content: View>(
+        _ content: Content,
+        style: ViaPresentationStyle = .sheet(),
+        animated: Bool = true
+    ) {
+        presented = ViaPresentation(style: style, content: AnyView(content), animated: animated)
+    }
+
+    /// Dismiss the currently presented modal (if any).
+    public func dismissPresented(animated: Bool = true) {
+        if var current = presented {
+            current.animated = animated
+            presented = nil
+        } else {
+            presented = nil
+        }
     }
 
     public func navigateBack(animated: Bool = true) {
@@ -486,6 +570,10 @@ public struct ViaTabNavigatorView<C: TabCoordinating>: View {
             }
         }
         .environmentObject(coordinator)
+        // Presentation must be attached to a "real" container view (like TabView/NavigationStack).
+        // Attaching `.sheet(...)` to an invisible background (e.g. `Color.clear`) can fail to
+        // present in SwiftUI because the presentation host is not part of the active hierarchy.
+        .modifier(ViaPresentationModifier(coordinator: coordinator, presenting: coordinator as? any ViaPresentationCoordinating))
     }
 
     private func pathBinding(for tab: C.Tab) -> Binding<[C.Route]> {
@@ -493,6 +581,76 @@ public struct ViaTabNavigatorView<C: TabCoordinating>: View {
             get: { coordinator.paths[tab] ?? [] },
             set: { coordinator.paths[tab] = $0 }
         )
+    }
+}
+
+// MARK: - Presentation hosting (SwiftUI)
+
+@available(iOS 16.0, macOS 13.0, *)
+private struct ViaPresentationModifier<C: ObservableObject>: ViewModifier {
+    @ObservedObject var coordinator: C
+    let presenting: (any ViaPresentationCoordinating)?
+
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        content
+            // SwiftUI uses different APIs for sheets vs full screen. We drive both off the same
+            // coordinator state (`presented`) by projecting it into style-specific bindings.
+            .sheet(item: sheetItem) { presentation in
+                sheetContent(presentation)
+            }
+            .fullScreenCover(item: fullScreenItem) { presentation in
+                AnyView(presentation.content.environmentObject(coordinator))
+            }
+        #else
+        content
+            // macOS doesn't support `fullScreenCover(item:)`. We present everything as a sheet.
+            .sheet(item: anyPresentationItem) { presentation in
+                AnyView(presentation.content.environmentObject(coordinator))
+            }
+        #endif
+    }
+
+    private var sheetItem: Binding<ViaPresentation?> {
+        Binding(
+            get: {
+                guard let current = presenting?.presented else { return nil }
+                if case .sheet = current.style { return current }
+                return nil
+            },
+            set: { presenting?.presented = $0 }
+        )
+    }
+
+    private var fullScreenItem: Binding<ViaPresentation?> {
+        Binding(
+            get: {
+                guard let current = presenting?.presented else { return nil }
+                if case .fullScreen = current.style { return current }
+                return nil
+            },
+            set: { presenting?.presented = $0 }
+        )
+    }
+
+    private var anyPresentationItem: Binding<ViaPresentation?> {
+        Binding(
+            get: { presenting?.presented },
+            set: { presenting?.presented = $0 }
+        )
+    }
+
+    @ViewBuilder
+    private func sheetContent(_ presentation: ViaPresentation) -> some View {
+        switch presentation.style {
+        case .sheet(let detents):
+            // Detents coming from user code may be empty/invalid; normalize to avoid SwiftUI asserts.
+            let normalized = ViaSheetDetent._normalized(detents)
+            AnyView(presentation.content.environmentObject(coordinator))
+                .presentationDetents(Set(normalized.map { $0.toSwiftUIDetent() }))
+        case .fullScreen:
+            AnyView(presentation.content.environmentObject(coordinator))
+        }
     }
 }
 
