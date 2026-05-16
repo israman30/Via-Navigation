@@ -143,7 +143,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
    - store it in `self.window`
    - call `window.makeKeyAndVisible()`
 
-Minimal copy/paste sample in this repo: `Via/Examples/UIKitSetupSample.swift` (scene setup + UIKit root view controller that embeds a Via coordinator with two child screens).
+Minimal copy/paste sample in this repo: `Via/Examples/UIKitSetupSample.swift` (scene setup + `SomeViewController` hosting a UIKit `UITableView` and navigating to a SwiftUI detail view via Via).
 
 If you want the *absolute smallest* root creation, you can wrap it like:
 
@@ -157,9 +157,10 @@ func makeRootViewController() -> UIViewController {
 }
 ```
 
-#### Embed a Via coordinator inside an existing `UIViewController`
+#### Embed a Via coordinator inside an existing `UIViewController` (UITableView → Via push)
 
-If you already have a UIKit screen (e.g. `SomeViewController`) and you want that controller to **host a Via flow** (root + pushed child screens), embed `ViaNavigatorView(coordinator:)` using a `UIHostingController`.
+If you already have a UIKit screen (e.g. `SomeViewController`) and you want that controller to **host a Via flow**, embed `ViaNavigatorView(coordinator:)` using a `UIHostingController`.
+In the sample, the coordinator’s **root** is a UIKit `UITableViewController`, and `didSelectRowAt` calls `coordinator.navigate(to:)` to push a SwiftUI detail screen programmatically.
 
 Working sample: `Via/Examples/UIKitSetupSample.swift` (`SomeViewController`).
 
@@ -190,6 +191,14 @@ final class SomeViewController: UIViewController {
         ])
         hosting.didMove(toParent: self)
     }
+}
+```
+
+UIKit table selection → Via navigation (core idea):
+
+```swift
+override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    coordinator.navigate(to: .detail(id: items[indexPath.row]))
 }
 ```
 
@@ -391,7 +400,7 @@ This repo includes a demo target you can run in Xcode:
 - **Screens**:
   - `Via/Examples/SmapleView.swift` (parent/child navigation)
   - `Via/Examples/AuthImplementation.swift` (auth flow)
-  - `Via/Examples/UIKitSetupSample.swift` (UIKit scene setup + `SomeViewController` embedding a Via coordinator w/ 2 child views)
+  - `Via/Examples/UIKitSetupSample.swift` (UIKit scene setup + `SomeViewController` hosting a `UITableView` root; tap cell → Via pushes SwiftUI detail)
   - `Via/Examples/UIKitImplementationSample.swift` (UIKit host + auth + tabs + modal present)
 
 Open a file above and run its `#Preview`.
