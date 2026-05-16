@@ -20,6 +20,7 @@ import Via
 /// - Root: `LoginView`
 /// - Push: `SignupView`
 /// - After success: `HomeView` replaces the root
+@available(iOS 16.0, *)
 public struct AuthFlowRootView: View {
     public init() {}
 
@@ -28,11 +29,13 @@ public struct AuthFlowRootView: View {
     }
 }
 
+@available(iOS 16.0, *)
 private enum AuthRoute: Hashable {
     /// Create-account screen pushed from `LoginView`.
     case signup
 }
 
+@available(iOS 16.0, *)
 @MainActor
 private final class AuthCoordinator: ViaNavigator<AuthRoute> {
     /// When `true`, `rootView()` renders `HomeView`; otherwise it renders `LoginView`.
@@ -76,6 +79,7 @@ private final class AuthCoordinator: ViaNavigator<AuthRoute> {
     }
 }
 
+@available(iOS 16.0, *)
 private struct LoginView: View {
     @EnvironmentObject private var coordinator: AuthCoordinator
 
@@ -139,6 +143,7 @@ private struct LoginView: View {
     }
 }
 
+@available(iOS 16.0, *)
 private struct SignupView: View {
     @EnvironmentObject private var coordinator: AuthCoordinator
 
@@ -215,6 +220,7 @@ private struct SignupView: View {
     }
 }
 
+@available(iOS 16.0, *)
 private struct HomeView: View {
     @EnvironmentObject private var coordinator: AuthCoordinator
     let email: String
@@ -239,8 +245,11 @@ private struct HomeView: View {
     }
 }
 
-#Preview {
-    AuthFlowRootView()
+@available(iOS 16.0, *)
+struct AuthFlowRootView_Previews: PreviewProvider {
+    static var previews: some View {
+        AuthFlowRootView()
+    }
 }
 
 #endif

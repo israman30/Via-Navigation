@@ -171,6 +171,7 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating {
 /// Create the coordinator once at the root, and pass it here. `ViaNavigatorView` keeps it
 /// alive using `@StateObject` and injects it into the environment as an `EnvironmentObject`.
 ///
+@available(iOS 16.0, macOS 13.0, *)
 @MainActor
 public struct ViaNavigatorView<C: Coordinating>: View {
     @StateObject private var coordinator: C
@@ -372,6 +373,7 @@ open class ViaTabNavigator<Tab: Hashable, Route: Hashable>: ObservableObject, Ta
 /// A `TabView` host for any tab-based coordinator.
 ///
 /// It renders one `NavigationStack` per tab and binds each stack to its tab-specific `[Route]` path.
+@available(iOS 16.0, macOS 13.0, *)
 @MainActor
 public struct ViaTabNavigatorView<C: TabCoordinating>: View {
     @StateObject private var coordinator: C
@@ -407,5 +409,6 @@ public struct ViaTabNavigatorView<C: TabCoordinating>: View {
 /// Backwards-friendly alias for the coordinator-based host view.
 ///
 /// Prefer `ViaNavigatorView` directly.
+@available(iOS 16.0, macOS 13.0, *)
 @available(*, deprecated, message: "Use ViaNavigatorView(coordinator:) instead.")
 public typealias Navigation<C: Coordinating> = ViaNavigatorView<C>

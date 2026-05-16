@@ -210,8 +210,10 @@ public final class SomeViewController: UIViewController {
 }
 
 @available(iOS 16.0, *)
-#Preview("UIKit Setup Sample") {
-    UIKitSetupSamplePreview()
+struct UIKitSetupSample_Previews: PreviewProvider {
+    static var previews: some View {
+        UIKitSetupSamplePreview()
+    }
 }
 #endif
 

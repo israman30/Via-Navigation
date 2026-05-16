@@ -16,6 +16,7 @@ import Via
 /// - Open `CoordinatorSampleRootView` in the preview at the bottom of this file, or
 /// - Drop `CoordinatorSampleRootView()` into any SwiftUI hierarchy in a Debug build.
 
+@available(iOS 16.0, *)
 public struct AppSampleRootView: View {
     public init() {}
 
@@ -24,6 +25,7 @@ public struct AppSampleRootView: View {
     }
 }
 
+@available(iOS 16.0, *)
 @MainActor
 private final class RootCoordinator: ViaNavigator<Route> {
     override func rootView() -> AnyView {
@@ -41,12 +43,14 @@ private final class RootCoordinator: ViaNavigator<Route> {
 }
 
 /// Routes that can be pushed onto the navigation stack.
+@available(iOS 16.0, *)
 private enum Route: Hashable {
     case details(id: String)
     case settings
 }
 
 /// Main screen for the sample (this is the coordinator’s `rootView()`).
+@available(iOS 16.0, *)
 private struct Main: View {
     @EnvironmentObject private var coordinator: RootCoordinator
 
@@ -75,6 +79,7 @@ private struct Main: View {
 }
 
 /// Destination screen for `.details`.
+@available(iOS 16.0, *)
 private struct Details: View {
     let id: String
     @EnvironmentObject private var coordinator: RootCoordinator
@@ -110,6 +115,7 @@ private struct Details: View {
 }
 
 /// Destination screen for `.settings`.
+@available(iOS 16.0, *)
 private struct Settings: View {
     @EnvironmentObject private var coordinator: RootCoordinator
 
@@ -134,6 +140,7 @@ private struct Settings: View {
     }
 }
 
+@available(iOS 16.0, *)
 struct CoordinatorSampleRootView_Previews: PreviewProvider {
     static var previews: some View {
         AppSampleRootView()

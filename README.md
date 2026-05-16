@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Via</strong> is a lightweight coordinator abstraction for iOS <code>(UIKit/SwiftUI)</code>’s <code>NavigationStack</code>.
+  <strong>Via</strong> is a lightweight coordinator abstraction for iOS navigation in <code>UIKit</code> (<code>UINavigationController</code>, iOS 13+) and <code>SwiftUI</code> (<code>NavigationStack</code>, iOS 16+).
   <br>
   <em>Simplify your navigation flow by separating state from view construction.</em>
 </p>
@@ -28,7 +28,7 @@ import PackageDescription
 
 let package = Package(
     name: "MyApp",
-    platforms: [.iOS(.v16)],
+    platforms: [.iOS(.v13)],
     dependencies: [
         .package(url: "https://github.com/israman30/Via-Navigation.git", branch: "main")
     ],
@@ -49,7 +49,9 @@ let package = Package(
 2) Subclass `ViaNavigator<Route>` and override:
    - `rootView()` (your entry view)
    - `destinationView(for:)` (one `switch` case per route)
-3) Host the coordinator once using `ViaNavigatorView(coordinator:)`.
+3) Host the coordinator:
+   - `ViaNavigatorView(coordinator:)` for SwiftUI `NavigationStack` (**iOS 16+**)
+   - `ViaNavigatorViewController(coordinator:)` for UIKit shells (**iOS 13+**)
 
 ```swift
 import SwiftUI
@@ -107,7 +109,7 @@ If your app shell is UIKit (or you’re migrating incrementally), you can host t
 - **UIKit → Coordinator**: back button and interactive swipe-back are observed and mirrored into `coordinator.path`.
 - **SwiftUI screens still work**: screens receive your concrete coordinator via `@EnvironmentObject` (same as the SwiftUI-only host).
 
-> Requires **iOS 16+** (same minimum as `NavigationStack`).
+> `ViaNavigatorViewController` supports **iOS 13+**. (The SwiftUI `NavigationStack` hosts require **iOS 16+**.)
 
 ```swift
 import UIKit
@@ -159,37 +161,29 @@ func makeRootViewController() -> UIViewController {
 
 #### Embed a Via coordinator inside an existing `UIViewController` (UITableView → Via push)
 
-If you already have a UIKit screen (e.g. `SomeViewController`) and you want that controller to **host a Via flow**, embed `ViaNavigatorView(coordinator:)` using a `UIHostingController`.
-In the sample, the coordinator’s **root** is a UIKit `UITableViewController`, and `didSelectRowAt` calls `coordinator.navigate(to:)` to push a SwiftUI detail screen programmatically.
-
-Working sample: `Via/Examples/UIKitSetupSample.swift` (`SomeViewController`).
+If you already have a UIKit screen (e.g. `SomeViewController`) and you want that controller to **host a Via flow**, embed `ViaNavigatorViewController(coordinator:)` as a child view controller (**iOS 13+**).
+This keeps navigation in UIKit (`UINavigationController`) while your coordinator still owns the route-to-view mapping.
 
 ```swift
 import UIKit
-import SwiftUI
 import Via
 
 final class SomeViewController: UIViewController {
-    private let coordinator = SomeCoordinator()
+    private let via = ViaNavigatorViewController(coordinator: SomeCoordinator())
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let root = ViaNavigatorView(coordinator: coordinator)
-        let hosting = UIHostingController(
-            rootView: AnyView(root.environmentObject(coordinator))
-        )
-
-        addChild(hosting)
-        view.addSubview(hosting.view)
-        hosting.view.translatesAutoresizingMaskIntoConstraints = false
+        addChild(via)
+        view.addSubview(via.view)
+        via.view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            hosting.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hosting.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            hosting.view.topAnchor.constraint(equalTo: view.topAnchor),
-            hosting.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            via.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            via.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            via.view.topAnchor.constraint(equalTo: view.topAnchor),
+            via.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-        hosting.didMove(toParent: self)
+        via.didMove(toParent: self)
     }
 }
 ```
@@ -403,12 +397,12 @@ This repo includes a demo target you can run in Xcode:
   - `Via/Examples/UIKitSetupSample.swift` (UIKit scene setup + `SomeViewController` hosting a `UITableView` root; tap cell → Via pushes SwiftUI detail)
   - `Via/Examples/UIKitImplementationSample.swift` (UIKit host + auth + tabs + modal present)
 
-Open a file above and run its `#Preview`.
+Open a file above and run its Xcode Preview.
 
 ## Tech stack
 
 - **Language**: Swift 6 (Swift tools: 6.3)
-- **UI**: SwiftUI (`NavigationStack`)
+- **UI**: SwiftUI (`NavigationStack`, iOS 16+) + UIKit (`UINavigationController`, iOS 13+)
 - **State**: Combine (`@Published`)
 - **Distribution**: Swift Package Manager
 
@@ -416,7 +410,7 @@ Open a file above and run its `#Preview`.
 
 Defined in `Package.swift`:
 
-- **iOS**: 16+
+- **iOS**: 13+ (core + UIKit host), 16+ for SwiftUI `NavigationStack` hosts
 - **macOS**: 13+
 - **Swift tools**: 6.3 (use an Xcode toolchain that supports Swift 6.3)
 

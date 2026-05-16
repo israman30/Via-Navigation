@@ -434,7 +434,9 @@ private struct UIKitSamplePreview: UIViewControllerRepresentable {
 }
 
 @available(iOS 16.0, *)
-#Preview("UIKit Implementation Sample") {
-    UIKitSamplePreview()
+struct UIKitImplementationSample_Previews: PreviewProvider {
+    static var previews: some View {
+        UIKitSamplePreview()
+    }
 }
 #endif
