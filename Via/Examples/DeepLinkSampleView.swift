@@ -8,6 +8,10 @@ import Via
 ///
 /// - Register routes in your coordinator’s initializer using `urlRouter.register(...)`.
 /// - Apply navigation by calling `coordinator.handle(url:)` (e.g. from `onOpenURL`).
+///
+/// Tip:
+/// - In real apps, you’d typically call `handle(url:)` from `scene(_:openURLContexts:)` (UIKit) or
+///   `onOpenURL` (SwiftUI). This sample also includes buttons to simulate incoming URLs.
 @available(iOS 16.0, *)
 public struct DeepLinkSampleRootView: View {
     public init() {}
@@ -89,6 +93,8 @@ private struct DeepLinkHome: View {
             Section("Try a URL") {
                 TextField("myapp://…", text: $urlString)
                 #if os(iOS)
+                    // These input modifiers aren’t available on macOS in this toolchain,
+                    // but the sample builds for macOS as well (package platform support).
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 #endif

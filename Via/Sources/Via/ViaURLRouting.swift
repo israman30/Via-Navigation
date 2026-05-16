@@ -1,6 +1,11 @@
 import Foundation
 
+/// A navigation instruction produced by URL routing.
+///
+/// A router resolves an incoming `URL` into a `ViaURLNavigation` which is then applied by
+/// `ViaNavigator.handle(url:)` (or `ViaTabNavigator.handle(url:)`).
 public struct ViaURLNavigation<Route> {
+    /// How the produced routes should be applied to the current stack.
     public enum Mode: Sendable {
         /// Replace the entire stack with `routes`.
         case setPath
@@ -10,6 +15,7 @@ public struct ViaURLNavigation<Route> {
         case replace
     }
 
+    /// The ordered route list to apply.
     public var routes: [Route]
     public var mode: Mode
 
@@ -18,17 +24,27 @@ public struct ViaURLNavigation<Route> {
         self.mode = mode
     }
 
+    /// Replace the entire stack with `routes`.
     public static func setPath(_ routes: [Route]) -> Self { Self(routes, mode: .setPath) }
+    /// Append `routes` to the current stack.
     public static func push(_ routes: [Route]) -> Self { Self(routes, mode: .push) }
+    /// Replace the stack with a single route.
     public static func replace(with route: Route) -> Self { Self([route], mode: .replace) }
 }
 
+/// Parsed URL inputs provided to a route handler.
+///
+/// `ViaURLRequest` merges information from:
+/// - the matching pattern (`pathParameters`)
+/// - the URL query string (`queryParameters`)
+/// - the URL fragment (`fragment`)
 public struct ViaURLRequest: Sendable {
     public let url: URL
     public let pathParameters: [String: String]
     public let queryParameters: [String: String]
     public let fragment: String?
 
+    /// Convenience view of query + path parameters (path parameters win on key collisions).
     public var parameters: [String: String] {
         var merged = queryParameters
         for (k, v) in pathParameters { merged[k] = v }
@@ -53,6 +69,12 @@ public struct ViaURLMatch<Route> {
     public let navigation: ViaURLNavigation<Route>
 }
 
+/// A tiny, dependency-free URL router intended for deep linking.
+///
+/// Design notes:
+/// - **First match wins**: patterns are evaluated in registration order.
+/// - **Non-HTTP schemes**: `myapp://profile/settings` treats `profile` as the first path segment
+///   (since many deep link formats encode the first segment in the host position).
 public final class ViaURLRouter<Route> {
     public typealias Handler = @Sendable (ViaURLRequest) -> ViaURLNavigation<Route>?
 
@@ -108,6 +130,12 @@ public final class ViaURLRouter<Route> {
 
 // MARK: - Tab routing
 
+/// Tab-aware navigation instruction produced by URL routing.
+///
+/// This is used by `ViaTabNavigator.handle(url:)` to decide:
+/// - which tab to target (`tab` or current `selectedTab`)
+/// - whether the UI should switch tabs (`selectTab`)
+/// - how to apply the routes (`mode`)
 public struct ViaTabURLNavigation<Tab, Route> {
     public enum Mode: Sendable {
         case setPath
@@ -147,6 +175,9 @@ public struct ViaTabURLMatch<Tab, Route> {
     public let navigation: ViaTabURLNavigation<Tab, Route>
 }
 
+/// A tab-aware URL router.
+///
+/// The pattern matching rules are identical to `ViaURLRouter`.
 public final class ViaTabURLRouter<Tab, Route> {
     public typealias Handler = @Sendable (ViaURLRequest) -> ViaTabURLNavigation<Tab, Route>?
 
@@ -202,6 +233,8 @@ private struct ViaURLInfo {
         if isHTTP {
             segments = pathSegments
         } else if let rawHost, !rawHost.isEmpty {
+            // Custom schemes often place the "first path component" in the host position:
+            // `myapp://profile/settings` (host = "profile", path = "/settings")
             segments = [rawHost] + pathSegments
         } else {
             segments = pathSegments
@@ -230,6 +263,7 @@ private struct ViaURLPattern {
     init(_ pattern: String) {
         let trimmed = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.hasPrefix("/") {
+            // Path-only patterns ignore scheme + host.
             scheme = nil
             host = nil
             segments = ViaURLPattern.parseSegments(fromPathLike: trimmed)
@@ -246,6 +280,7 @@ private struct ViaURLPattern {
             if isHTTP {
                 segments = pathSegments
             } else if let h = comps.host, !h.isEmpty {
+                // Mirror the non-HTTP URL behavior: treat host as a first segment.
                 segments = [ViaURLPattern.literal(h)] + pathSegments
             } else {
                 segments = pathSegments
@@ -269,6 +304,7 @@ private struct ViaURLPattern {
         while i < segments.count, j < info.segments.count {
             switch segments[i] {
             case .wildcard:
+                // `*` matches the remainder of the path. (No parameters are captured from it.)
                 return params
             case .literal(let lit):
                 guard lit == info.segments[j] else { return nil }
