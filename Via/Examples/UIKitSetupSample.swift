@@ -6,8 +6,11 @@ import Via
 // MARK: - Minimal UIKit setup sample
 
 @available(iOS 16.0, *)
-/// A minimal UIKit-first sample showing the smallest possible setup:
+/// A minimal UIKit-first sample showing a scene-based app setup:
 /// `UIWindow(windowScene:)` → `UINavigationController` → `SomeViewController`.
+///
+/// `SomeViewController` demonstrates a UIKit `UITableView` root that navigates *via Via*:
+/// tapping a cell calls `coordinator.navigate(to:)`, and the coordinator pushes a SwiftUI detail view.
 public enum UIKitSetupSample {
     @MainActor
     public static func makeRootViewController() -> UIViewController {
@@ -53,11 +56,17 @@ private struct UIKitSetupSamplePreview: UIViewControllerRepresentable {
 
 @available(iOS 16.0, *)
 private enum SomeRoute: Hashable {
+    /// SwiftUI detail pushed by the coordinator.
     case detail(id: Int)
 }
 
 @available(iOS 16.0, *)
 @MainActor
+/// Coordinator responsible for converting `SomeRoute` values into screens.
+///
+/// In this sample:
+/// - The **root** is a UIKit `UITableViewController` embedded inside SwiftUI.
+/// - The **destination** is a SwiftUI detail view pushed via Via.
 private final class SomeCoordinator: ViaNavigator<SomeRoute> {
     override func rootView() -> AnyView {
         AnyView(SomeRootView())
@@ -72,6 +81,9 @@ private final class SomeCoordinator: ViaNavigator<SomeRoute> {
 }
 
 @available(iOS 16.0, *)
+/// Root screen for the coordinator.
+///
+/// We embed a UIKit table view here so the sample shows: UIKit interaction → Via navigation.
 private struct SomeRootView: View {
     @EnvironmentObject private var coordinator: SomeCoordinator
 
@@ -101,6 +113,9 @@ private struct SomeDetailView: View {
 }
 
 @available(iOS 16.0, *)
+/// Bridges a UIKit `UITableViewController` into SwiftUI.
+///
+/// The table controller receives the coordinator so it can call `navigate(to:)` on selection.
 private struct SomeTableViewControllerHost: UIViewControllerRepresentable {
     @ObservedObject var coordinator: SomeCoordinator
 
@@ -113,7 +128,12 @@ private struct SomeTableViewControllerHost: UIViewControllerRepresentable {
 
 @available(iOS 16.0, *)
 @MainActor
+/// A UIKit table that triggers Via navigation programmatically on selection.
 private final class SomeItemsTableViewController: UITableViewController {
+    private enum Constants {
+        static let cellReuseIdentifier = "cell"
+    }
+
     private let coordinator: SomeCoordinator
     private let items: [Int] = Array(1...20)
 
@@ -129,7 +149,7 @@ private final class SomeItemsTableViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: Constants.cellReuseIdentifier)
         tableView.allowsSelection = true
     }
 
@@ -142,7 +162,7 @@ private final class SomeItemsTableViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        let cell = tableView.dequeueReusableCell(withIdentifier: Constants.cellReuseIdentifier, for: indexPath)
         let id = items[indexPath.row]
         var config = cell.defaultContentConfiguration()
         config.text = "Item \(id)"
@@ -155,11 +175,13 @@ private final class SomeItemsTableViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let id = items[indexPath.row]
         tableView.deselectRow(at: indexPath, animated: true)
+        // UIKit interaction → Via navigation → SwiftUI destination.
         coordinator.navigate(to: .detail(id: id))
     }
 }
 
 @available(iOS 16.0, *)
+/// UIKit container that embeds the Via flow using a `UIHostingController`.
 public final class SomeViewController: UIViewController {
     private let coordinator = SomeCoordinator()
     private var hostingController: UIViewController?
@@ -169,7 +191,6 @@ public final class SomeViewController: UIViewController {
 
         title = "Some"
         view.backgroundColor = .systemBackground
-        navigationController?.setNavigationBarHidden(true, animated: false)
 
         let root = ViaNavigatorView(coordinator: self.coordinator)
         let hosting = UIHostingController(rootView: AnyView(root.environmentObject(coordinator)))
