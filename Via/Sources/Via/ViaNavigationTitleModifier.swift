@@ -16,18 +16,20 @@ public struct ViaNavigationTitleModifier: ViewModifier {
     }
 
     public func body(content: Content) -> some View {
-#if os(iOS)
+        #if os(iOS)
         if #available(iOS 14.0, *) {
             content
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(displayMode._toSwiftUITitleDisplayMode)
         } else {
-            content.navigationBarTitle(title, displayMode: displayMode._toSwiftUITitleDisplayMode)
+            // iOS 13 SwiftUI can't control inline/large title mode reliably.
+            // We still set the title so UIKit-hosted flows (and SwiftUI) show it.
+            content.navigationBarTitle(title)
         }
-#else
+        #else
         // macOS doesn't support iOS-style large/inline navigation bar titles.
         content.navigationTitle(title)
-#endif
+        #endif
     }
 }
 
