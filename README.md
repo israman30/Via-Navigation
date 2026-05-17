@@ -23,7 +23,7 @@
 - **`Package.swift`**: add the package and the `Via` product to your target dependencies:
 
 ```swift
-// swift-tools-version: 6.3
+// swift-tools-version: 5.9
 import PackageDescription
 
 let package = Package(
