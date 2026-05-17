@@ -507,6 +507,38 @@ Defined in `Package.swift`:
 - **macOS**: 13+
 - **Swift tools**: 6.3 (use an Xcode toolchain that supports Swift 6.3)
 
+## Debugging / Troubleshooting
+
+If you hit errors like **"No such module ..."** (or the package builds in isolation but fails in your app), try these in order.
+
+### 1) The "Magic" reset
+
+Before diving into settings, clear cached build data which can get corrupted:
+
+- **Clean Build Folder**: press Command + Shift + K.
+- **Nuke Derived Data**: go to Xcode Settings → Locations, click the small arrow next to the Derived Data path, and delete the contents of that folder.
+- **Restart Xcode**: sometimes the IDE just needs a fresh start to re-index modules.
+
+### 2) Verify target membership
+
+The library might be added to the project but not assigned to the target you’re building (App, Unit Tests, etc.):
+
+- Select your project in the Project Navigator.
+- Select your Target (e.g., your app name).
+- Go to the General tab.
+- Scroll to **Frameworks, Libraries, and Embedded Content**.
+- If your module isn’t listed, click **+** and add it.
+
+### 3) Dependency-specific fixes
+
+- **Swift Package Manager (SPM)**: go to File → Packages → Update to Latest Package Versions. If you’re on Xcode 16+, try disabling **Explicitly Built Modules** in Build Settings if errors persist.
+- **CocoaPods**: ensure you’re opening the `.xcworkspace` file (not the `.xcodeproj`). Run `pod install` if you recently changed your `Podfile`.
+- **Unit tests**: if the error is in a test file, ensure your main app target has **Enable Testability** set to **Yes** in Build Settings.
+
+### 4) Check for naming conflicts
+
+Ensure your project name is not identical to the module you’re trying to import (for example, naming your project “Firebase” and then trying to `import Firebase`). This can create a circular dependency that confuses the compiler.
+
 ## Contribution policy
 
 Contributions are welcome.
