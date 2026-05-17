@@ -96,7 +96,23 @@ struct HomeView: View {
                 coordinator.navigate(to: .settings) 
             }
         }
-        .navigationTitle("Home")
+        .viaNavigationTitle("Home", displayMode: .large)
+    }
+}
+```
+
+### Navigation title display mode (inline / large)
+
+Via includes a small convenience modifier to set the navigation title **and** override the title display mode:
+
+```swift
+import SwiftUI
+import Via
+
+struct DetailsView: View {
+    var body: some View {
+        Text("Details")
+            .viaNavigationTitle("Details", displayMode: .inline)
     }
 }
 ```
@@ -228,7 +244,7 @@ struct HomeView: View {
             Button("Push details") { coordinator.navigate(to: .details(id: "A1")) }
             Button("Pop") { coordinator.navigateBack() }
         }
-        .navigationTitle("Home")
+        .viaNavigationTitle("Home", displayMode: .large)
     }
 }
 ```
@@ -285,7 +301,7 @@ private final class AuthCoordinator: ViaNavigator<AuthRoute> {
 
 Use routes to push child screens, and keep the mapping in [`destinationView(for:)`](Via/Sources/Via/Via.swift#L93).
 
-Working demo: [`Via/Examples/SmapleView.swift`](Via/Examples/SmapleView.swift) ([`AppSampleRootView`](Via/Examples/SmapleView.swift#L20)).
+Working demo: [`Via/Examples/SampleView.swift`](Via/Examples/SampleView.swift) ([`AppSampleRootView`](Via/Examples/SampleView.swift#L20)).
 
 ```swift
 private enum Route: Hashable {
@@ -487,7 +503,7 @@ This repo includes a demo target you can run in Xcode:
 
 - **Scheme/target**: `ViaDemoUI`
 - **Screens**:
-  - [`Via/Examples/SmapleView.swift`](Via/Examples/SmapleView.swift) (parent/child navigation)
+  - [`Via/Examples/SampleView.swift`](Via/Examples/SampleView.swift) (parent/child navigation)
   - [`Via/Examples/DeepLinkSampleView.swift`](Via/Examples/DeepLinkSampleView.swift) (deep linking / URL routing; [`DeepLinkSampleRootView`](Via/Examples/DeepLinkSampleView.swift#L16))
   - [`Via/Examples/AuthImplementation.swift`](Via/Examples/AuthImplementation.swift) (auth flow; [`AuthFlowRootView`](Via/Examples/AuthImplementation.swift#L24))
   - [`Via/Examples/TabSampleView.swift`](Via/Examples/TabSampleView.swift) (TabView + one NavigationStack per tab; [`TabSampleRootView`](Via/Examples/TabSampleView.swift#L28))
