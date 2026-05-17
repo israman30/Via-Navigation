@@ -46,12 +46,12 @@ let package = Package(
 ### Quick start
 
 1) Define a typed route model (usually an `enum`) that conforms to `Hashable`.
-2) Subclass `ViaNavigator<Route>` and override:
-   - `rootView()` (your entry view)
-   - `destinationView(for:)` (one `switch` case per route)
+2) Subclass [`ViaNavigator<Route>`](Via/Sources/Via/Via.swift#L74) and override:
+   - [`rootView()`](Via/Sources/Via/Via.swift#L89) (your entry view)
+   - [`destinationView(for:)`](Via/Sources/Via/Via.swift#L93) (one `switch` case per route)
 3) Host the coordinator:
-   - `ViaNavigatorView(coordinator:)` for SwiftUI `NavigationStack` (**iOS 16+**)
-   - `ViaNavigatorViewController(coordinator:)` for UIKit shells (**iOS 13+**)
+   - [`ViaNavigatorView(coordinator:)`](Via/Sources/Via/Via.swift#L265) for SwiftUI `NavigationStack` (**iOS 16+**)
+   - [`ViaNavigatorViewController(coordinator:)`](Via/Sources/Via/ViaNavigatorViewController.swift#L22) for UIKit shells (**iOS 13+**)
 
 ```swift
 import SwiftUI
@@ -103,13 +103,13 @@ struct HomeView: View {
 
 ### UIKit hosting (UINavigationController + SwiftUI screens)
 
-If your app shell is UIKit (or you’re migrating incrementally), you can host the same coordinator in a `UINavigationController` using `ViaNavigatorViewController`.
+If your app shell is UIKit (or you’re migrating incrementally), you can host the same coordinator in a `UINavigationController` using [`ViaNavigatorViewController`](Via/Sources/Via/ViaNavigatorViewController.swift#L22).
 
 - **Coordinator → UIKit**: updates to `coordinator.path` push/pop view controllers.
 - **UIKit → Coordinator**: back button and interactive swipe-back are observed and mirrored into `coordinator.path`.
 - **SwiftUI screens still work**: screens receive your concrete coordinator via `@EnvironmentObject` (same as the SwiftUI-only host).
 
-> `ViaNavigatorViewController` supports **iOS 13+**. (The SwiftUI `NavigationStack` hosts require **iOS 16+**.)
+> [`ViaNavigatorViewController`](Via/Sources/Via/ViaNavigatorViewController.swift#L22) supports **iOS 13+**. (The SwiftUI `NavigationStack` hosts require **iOS 16+**.)
 
 ```swift
 import UIKit
@@ -137,7 +137,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 #### UIKit setup (step-by-step: create root + update `UIWindowScene`)
 
 1) **Create a coordinator** (your routes + view mapping).
-2) **Create the root view controller** with `ViaNavigatorViewController(coordinator:)`.
+2) **Create the root view controller** with [`ViaNavigatorViewController(coordinator:)`](Via/Sources/Via/ViaNavigatorViewController.swift#L22).
 3) **Update the window scene** in `scene(_:willConnectTo:options:)`:
    - cast `scene` → `UIWindowScene`
    - create `UIWindow(windowScene:)`
@@ -145,7 +145,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
    - store it in `self.window`
    - call `window.makeKeyAndVisible()`
 
-Minimal copy/paste sample in this repo: `Via/Examples/UIKitSetupSample.swift` (scene setup + `SomeViewController` hosting a UIKit `UITableView` and navigating to a SwiftUI detail view via Via).
+Minimal copy/paste sample in this repo: [`Via/Examples/UIKitSetupSample.swift`](Via/Examples/UIKitSetupSample.swift) (scene setup + [`SomeViewController`](Via/Examples/UIKitSetupSample.swift#L185) hosting a UIKit `UITableView` and navigating to a SwiftUI detail view via Via).
 
 If you want the *absolute smallest* root creation, you can wrap it like:
 
@@ -161,7 +161,7 @@ func makeRootViewController() -> UIViewController {
 
 #### Embed a Via coordinator inside an existing `UIViewController` (UITableView → Via push)
 
-If you already have a UIKit screen (e.g. `SomeViewController`) and you want that controller to **host a Via flow**, embed `ViaNavigatorViewController(coordinator:)` as a child view controller (**iOS 13+**).
+If you already have a UIKit screen (e.g. [`SomeViewController`](Via/Examples/UIKitSetupSample.swift#L185)) and you want that controller to **host a Via flow**, embed [`ViaNavigatorViewController(coordinator:)`](Via/Sources/Via/ViaNavigatorViewController.swift#L22) as a child view controller (**iOS 13+**).
 This keeps navigation in UIKit (`UINavigationController`) while your coordinator still owns the route-to-view mapping.
 
 ```swift
@@ -236,7 +236,7 @@ struct HomeView: View {
 #### Implementation notes
 
 - **Single source of truth**: your `Route` type is the API for navigation; the coordinator is where routes become views.
-- **Where to call navigation**: views should call `navigate(...)` / `navigateBack(...)` on the coordinator instead of manually manipulating a `NavigationPath`.
+- **Where to call navigation**: views should call [`navigate(to:animated:)`](Via/Sources/Via/Via.swift#L102) / [`navigateBack(animated:)`](Via/Sources/Via/Via.swift#L209) on the coordinator instead of manually manipulating a `NavigationPath`.
 - **Testability**: coordinators make it easier to unit-test navigation decisions (route selection) separately from view layout.
 
 ## Scenarios
@@ -245,7 +245,7 @@ struct HomeView: View {
 
 Use auth state to decide **which root screen** to show, while your `Route` models screens that are pushed on top of that root.
 
-Working demo: `Via/Examples/AuthImplementation.swift` (`AuthFlowRootView`).
+Working demo: [`Via/Examples/AuthImplementation.swift`](Via/Examples/AuthImplementation.swift) ([`AuthFlowRootView`](Via/Examples/AuthImplementation.swift#L24)).
 
 ```swift
 import SwiftUI
@@ -283,9 +283,9 @@ private final class AuthCoordinator: ViaNavigator<AuthRoute> {
 
 ### Parent and child views (root + pushed screens)
 
-Use routes to push child screens, and keep the mapping in `destinationView(for:)`.
+Use routes to push child screens, and keep the mapping in [`destinationView(for:)`](Via/Sources/Via/Via.swift#L93).
 
-Working demo: `Via/Examples/SmapleView.swift` (`AppSampleRootView`).
+Working demo: [`Via/Examples/SmapleView.swift`](Via/Examples/SmapleView.swift) ([`AppSampleRootView`](Via/Examples/SmapleView.swift#L20)).
 
 ```swift
 private enum Route: Hashable {
@@ -314,13 +314,15 @@ private final class RootCoordinator: ViaNavigator<Route> {
 
 When your UI uses `TabView`, it’s common to want each tab to keep its own independent navigation stack.
 
-`ViaTabNavigator<Tab, Route>` provides:
+[`ViaTabNavigator<Tab, Route>`](Via/Sources/Via/Via.swift#L316) provides:
 
 - **Per-tab stacks**: `paths[tab]` stores a separate `[Route]` for each tab.
-- **Selected tab binding**: `selectedTab` binds to `TabView(selection:)`.
+- **Selected tab binding**: [`selectedTab`](Via/Sources/Via/Via.swift#L295) binds to `TabView(selection:)`.
 - **Convenient APIs**: push/pop on the current tab, or target another tab (optionally switching tabs first).
 
-Working demo: `Via/Examples/TabSampleView.swift` (`TabSampleRootView`).
+Working demo: [`Via/Examples/TabSampleView.swift`](Via/Examples/TabSampleView.swift) ([`TabSampleRootView`](Via/Examples/TabSampleView.swift#L28)).
+
+Host view: [`ViaTabNavigatorView(coordinator:)`](Via/Sources/Via/Via.swift#L552)
 
 ```swift
 import SwiftUI
@@ -379,12 +381,12 @@ struct AppRoot: View {
 
 From any view that has the coordinator via `@EnvironmentObject`:
 
-- **Push**: `navigate(to:animated:)`
-- **Pop 1**: `navigateBack(animated:)`
-- **Pop N**: `navigateBack(steps:animated:)`
-- **Pop to a specific route**: `popTo(_:animated:)`
-- **Pop to root**: `navigateToRoot(animated:)`
-- **Replace stack / deep link**: `setPath(_:animated:)` and `replace(with:animated:)`
+- **Push**: [`navigate(to:animated:)`](Via/Sources/Via/Via.swift#L102)
+- **Pop 1**: [`navigateBack(animated:)`](Via/Sources/Via/Via.swift#L209)
+- **Pop N**: [`navigateBack(steps:animated:)`](Via/Sources/Via/Via.swift#L221)
+- **Pop to a specific route**: [`popTo(_:animated:)`](Via/Sources/Via/Via.swift#L236)
+- **Pop to root**: [`navigateToRoot(animated:)`](Via/Sources/Via/Via.swift#L245)
+- **Replace stack / deep link**: [`setPath(_:animated:)`](Via/Sources/Via/Via.swift#L135) and [`replace(with:animated:)`](Via/Sources/Via/Via.swift#L146)
 
 ### Transition customization (push + present)
 
@@ -392,6 +394,8 @@ Via supports a transition-aware API for:
 
 - **Custom push animations** (e.g. fade)
 - **Modal presentation** with configurable sheet detents
+
+API entry points: [`push(_:animation:)`](Via/Sources/Via/Via.swift#L111), [`present(_:style:animated:)`](Via/Sources/Via/Via.swift#L153)
 
 ```swift
 @EnvironmentObject private var router: AppCoordinator
@@ -407,16 +411,16 @@ router.push(.details(id: "A1"), animation: .fade)
 ```
 
 Notes:
-- In **UIKit hosting** (`ViaNavigatorViewController`), `.fade` is a real cross-fade push transition.
+- In **UIKit hosting** ([`ViaNavigatorViewController`](Via/Sources/Via/ViaNavigatorViewController.swift#L22)), `.fade` is a real cross-fade push transition (see [`ViaPushAnimation`](Via/Sources/Via/ViaPushAnimation.swift#L9)).
 - In **SwiftUI hosting** (`NavigationStack`), Apple controls the actual push transition; Via uses the
   provided animation when mutating `path`.
 
 ## Deep linking / URL routing
 
-Via includes a tiny URL router you can register patterns against, then call `handle(url:)` to perform navigation.
+Via includes a tiny URL router you can register patterns against, then call [`handle(url:)`](Via/Sources/Via/Via.swift#L181) to perform navigation.
 
-- **Where it lives**: every `ViaNavigator` has `urlRouter`, and every `ViaTabNavigator` has its own `urlRouter`.
-- **Return value**: `handle(url:)` returns `true` when a registered route matched and navigation was applied.
+- **Where it lives**: every [`ViaNavigator`](Via/Sources/Via/Via.swift#L74) has [`urlRouter`](Via/Sources/Via/Via.swift#L82), and every [`ViaTabNavigator`](Via/Sources/Via/Via.swift#L316) has its own [`urlRouter`](Via/Sources/Via/Via.swift#L326).
+- **Return value**: [`handle(url:)`](Via/Sources/Via/Via.swift#L181) returns `true` when a registered route matched and navigation was applied.
 - **Navigation modes**: handlers can return `.setPath(...)`, `.push(...)`, or `.replace(with:)`.
 
 ### 1) Register URL patterns
@@ -464,7 +468,7 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
 }
 ```
 
-- **SwiftUI**: attach `onOpenURL` anywhere you can call into your coordinator (a simple place is your `rootView()`):
+- **SwiftUI**: attach `onOpenURL` anywhere you can call into your coordinator (a simple place is your [`rootView()`](Via/Sources/Via/Via.swift#L89)):
 
 ```swift
 override func rootView() -> AnyView {
@@ -483,12 +487,12 @@ This repo includes a demo target you can run in Xcode:
 
 - **Scheme/target**: `ViaDemoUI`
 - **Screens**:
-  - `Via/Examples/SmapleView.swift` (parent/child navigation)
-  - `Via/Examples/DeepLinkSampleView.swift` (deep linking / URL routing)
-  - `Via/Examples/AuthImplementation.swift` (auth flow)
-  - `Via/Examples/TabSampleView.swift` (TabView + one NavigationStack per tab)
-  - `Via/Examples/UIKitSetupSample.swift` (UIKit scene setup + `SomeViewController` hosting a `UITableView` root; tap cell → Via pushes SwiftUI detail)
-  - `Via/Examples/UIKitImplementationSample.swift` (UIKit host + auth + tabs + modal present)
+  - [`Via/Examples/SmapleView.swift`](Via/Examples/SmapleView.swift) (parent/child navigation)
+  - [`Via/Examples/DeepLinkSampleView.swift`](Via/Examples/DeepLinkSampleView.swift) (deep linking / URL routing; [`DeepLinkSampleRootView`](Via/Examples/DeepLinkSampleView.swift#L16))
+  - [`Via/Examples/AuthImplementation.swift`](Via/Examples/AuthImplementation.swift) (auth flow; [`AuthFlowRootView`](Via/Examples/AuthImplementation.swift#L24))
+  - [`Via/Examples/TabSampleView.swift`](Via/Examples/TabSampleView.swift) (TabView + one NavigationStack per tab; [`TabSampleRootView`](Via/Examples/TabSampleView.swift#L28))
+  - [`Via/Examples/UIKitSetupSample.swift`](Via/Examples/UIKitSetupSample.swift) (UIKit scene setup + [`SomeViewController`](Via/Examples/UIKitSetupSample.swift#L185) hosting a UIKit `UITableView` root; tap cell → Via pushes SwiftUI detail)
+  - [`Via/Examples/UIKitImplementationSample.swift`](Via/Examples/UIKitImplementationSample.swift) (UIKit host + auth + tabs + modal present; [`UIKitImplementationSample.makeRootViewController()`](Via/Examples/UIKitImplementationSample.swift#L17))
 
 Open a file above and run its Xcode Preview.
 
@@ -546,7 +550,7 @@ Contributions are welcome.
 - **Before you start**: open an issue describing the bug/feature and the intended approach.
 - **Branching**: create a feature branch from `main` (or the default branch).
 - **Code style**: keep changes small and focused; prefer clarity over cleverness.
-- **Examples**: if you change the navigation API, update the demos in `Via/Examples/`.
+- **Examples**: if you change the navigation API, update the demos in [`Via/Examples/`](Via/Examples/).
 - **Verification**: ensure the package builds and the previews in `ViaDemoUI` still work.
 - **PRs**: include a short summary and a minimal test plan (even if it’s “Run Preview X”).
 
