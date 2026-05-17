@@ -74,7 +74,7 @@ private struct Main: View {
                 }
             }
         }
-        .navigationTitle("Main")
+        .viaNavigationTitle("Main")
     }
 }
 
@@ -110,7 +110,7 @@ private struct Details: View {
             .buttonStyle(.bordered)
         }
         .padding()
-        .navigationTitle("Details")
+        .viaNavigationTitle("Details", displayMode: .inline)
     }
 }
 
@@ -136,7 +136,7 @@ private struct Settings: View {
             .buttonStyle(.borderedProminent)
         }
         .padding()
-        .navigationTitle("Settings")
+        .viaNavigationTitle("Settings", displayMode: .inline)
     }
 }
 
