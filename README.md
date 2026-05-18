@@ -17,6 +17,17 @@
 - **Package URL**: `https://github.com/israman30/Via-Navigation.git`
 - **Product**: `Via`
 
+### Documentation
+
+Topic guides live in [`Documentation/`](Documentation/README.md):
+
+- **SwiftUI**: [`Documentation/SwiftUI.md`](Documentation/SwiftUI.md)
+- **UIKit**: [`Documentation/UIKit.md`](Documentation/UIKit.md)
+- **Authentication**: [`Documentation/Authentication.md`](Documentation/Authentication.md)
+- **TabView**: [`Documentation/TabView.md`](Documentation/TabView.md)
+- **DeepLink**: [`Documentation/DeepLink.md`](Documentation/DeepLink.md)
+- **URLRouting**: [`Documentation/URLRouting.md`](Documentation/URLRouting.md)
+
 #### Setup notes
 
 - **Xcode**: `File → Add Package Dependencies…` → paste the URL → select product `Via`.
