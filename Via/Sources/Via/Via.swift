@@ -237,7 +237,9 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating, ViaPre
         guard let index = path.lastIndex(of: route) else { return }
         let desiredCount = index + 1
         let toRemove = path.count - desiredCount
-        guard toRemove > 0 else { return }
+        guard toRemove > 0 else {
+            return
+        }
         navigateBack(steps: toRemove, animated: animated)
     }
     
