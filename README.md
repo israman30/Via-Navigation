@@ -8,6 +8,11 @@
   <em>Simplify your navigation flow by separating state from view construction.</em>
 </p>
 
+<p align="center">
+  <img alt="iOS 13+" src="https://img.shields.io/badge/iOS-13%2B-0A84FF">
+  <img alt="SwiftUI host iOS 16+" src="https://img.shields.io/badge/SwiftUI%20host-iOS%2016%2B-0A84FF">
+</p>
+
 # ViaNavigation
 
 ## How to use the component

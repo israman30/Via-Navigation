@@ -2,6 +2,11 @@
 
 This folder contains topic-focused guides for using **Via** in SwiftUI and UIKit, plus common scenarios like auth flows, tab stacks, and deep linking.
 
+<p>
+  <img alt="iOS 13+" src="https://img.shields.io/badge/iOS-13%2B-0A84FF">
+  <img alt="SwiftUI host iOS 16+" src="https://img.shields.io/badge/SwiftUI%20host-iOS%2016%2B-0A84FF">
+</p>
+
 ## Guides
 
 - [SwiftUI](SwiftUI.md)
