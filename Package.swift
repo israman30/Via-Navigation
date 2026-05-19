@@ -29,6 +29,11 @@ let package = Package(
             dependencies: ["Via"],
             path: "Via/Examples"
         ),
+        .testTarget(
+            name: "ViaTests",
+            dependencies: ["Via"],
+            path: "Tests/ViaTests"
+        ),
     ]
 )
 
