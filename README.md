@@ -9,6 +9,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/israman30/Via-Navigation/actions/workflows/build.yml">
+    <img alt="Build" src="https://github.com/israman30/Via-Navigation/actions/workflows/build.yml/badge.svg?branch=main">
+  </a>
   <img alt="iOS 13+" src="https://img.shields.io/badge/iOS-13%2B-0A84FF">
   <img alt="SwiftUI host iOS 16+" src="https://img.shields.io/badge/SwiftUI%20host-iOS%2016%2B-0A84FF">
   <img alt="Swift 6.3" src="https://img.shields.io/badge/Swift-6.3-F05138">
