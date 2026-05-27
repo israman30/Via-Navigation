@@ -110,8 +110,4 @@ Contributions are welcome.
 
 ## License
 
-There is currently **no license file** in this repository. Until a license is added, reuse and redistribution are not granted by default (see copyright below).
-
-## Copyright
-
-Copyright (c) 2026 Israel Manzo and contributors. All rights reserved.
+Via is released under the **MIT License**. See [`LICENSE`](LICENSE).
