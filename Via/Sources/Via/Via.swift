@@ -147,6 +147,30 @@ open class ViaNavigator<Route: Hashable>: ObservableObject, Coordinating, ViaPre
         setPath([route], animated: animated)
     }
 
+    /// Open a URL outside the app using the system browser or URL handler.
+    @discardableResult
+    public func openExternalURL(_ url: URL) -> Bool {
+        ViaExternalNavigation.open(url)
+    }
+
+    /// Open a URL string outside the app.
+    @discardableResult
+    public func openExternalURL(_ string: String) -> Bool {
+        ViaExternalNavigation.open(string)
+    }
+
+    /// Open a URL outside the app in the default browser.
+    @discardableResult
+    public func openInBrowser(_ url: URL) -> Bool {
+        ViaExternalNavigation.openInBrowser(url)
+    }
+
+    /// Open a URL string outside the app in the default browser.
+    @discardableResult
+    public func openInBrowser(_ string: String) -> Bool {
+        ViaExternalNavigation.openInBrowser(string)
+    }
+
     // MARK: - Presentation APIs
     
     /// Present an arbitrary SwiftUI view modally.
@@ -428,6 +452,30 @@ open class ViaTabNavigator<Tab: Hashable, Route: Hashable>: ObservableObject, Ta
 
     public func replace(with route: Route, animated: Bool = true) {
         replace(with: route, in: selectedTab, animated: animated, selectTab: false)
+    }
+
+    /// Open a URL outside the app using the system browser or URL handler.
+    @discardableResult
+    public func openExternalURL(_ url: URL) -> Bool {
+        ViaExternalNavigation.open(url)
+    }
+
+    /// Open a URL string outside the app.
+    @discardableResult
+    public func openExternalURL(_ string: String) -> Bool {
+        ViaExternalNavigation.open(string)
+    }
+
+    /// Open a URL outside the app in the default browser.
+    @discardableResult
+    public func openInBrowser(_ url: URL) -> Bool {
+        ViaExternalNavigation.openInBrowser(url)
+    }
+
+    /// Open a URL string outside the app in the default browser.
+    @discardableResult
+    public func openInBrowser(_ string: String) -> Bool {
+        ViaExternalNavigation.openInBrowser(string)
     }
 
     // MARK: - Presentation APIs

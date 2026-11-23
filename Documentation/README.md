@@ -16,6 +16,7 @@ This folder contains topic-focused guides for using **Via** in SwiftUI and UIKit
 - [TabView](TabView.md)
 - [DeepLink](DeepLink.md)
 - [URLRouting](URLRouting.md)
+- [ExternalNavigation](ExternalNavigation.md)
 
 ## Source entry points
 
@@ -23,11 +24,13 @@ This folder contains topic-focused guides for using **Via** in SwiftUI and UIKit
 - **UIKit host**: [`ViaNavigatorViewController`](../Via/Sources/Via/ViaNavigatorViewController.swift)
 - **URL routing**: [`ViaURLRouter` / `ViaTabURLRouter`](../Via/Sources/Via/ViaURLRouting.swift)
 - **Modal presentation**: [`ViaPresentation`](../Via/Sources/Via/ViaPresentation.swift)
+- **External navigation**: [`ViaExternalNavigation`](../Via/Sources/Via/ViaExternalNavigation.swift)
 
 ## Samples in this repo
 
 - **Auth flow**: [`Via/Examples/AuthImplementation.swift`](../Via/Examples/AuthImplementation.swift)
 - **TabView flow**: [`Via/Examples/TabSampleView.swift`](../Via/Examples/TabSampleView.swift)
 - **Deep linking**: [`Via/Examples/DeepLinkSampleView.swift`](../Via/Examples/DeepLinkSampleView.swift)
+- **External navigation**: [`Via/Examples/ExternalNavigationSampleView.swift`](../Via/Examples/ExternalNavigationSampleView.swift)
 - **UIKit setup**: [`Via/Examples/UIKitSetupSample.swift`](../Via/Examples/UIKitSetupSample.swift)
 - **UIKit full sample**: [`Via/Examples/UIKitImplementationSample.swift`](../Via/Examples/UIKitImplementationSample.swift)
