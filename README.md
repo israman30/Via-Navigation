@@ -25,7 +25,7 @@
 - **UIKit hosting**: drive a `UINavigationController` from the same coordinator model (iOS 13+)
 - **TabView support**: one independent navigation stack per tab (iOS 16+ host)
 - **Deep links / URL routing**: pattern matching with path/query params (single-stack + tab-aware)
-- **External navigation**: open web, email, and phone destinations in system handlers
+- **External navigation**: open web, email, and phone destinations in the system browser or URL handler
 - **Modal presentation**: sheet detents + full screen presentation via coordinator state
 - **Transition customization**: push with `.native` / `.none` / `.fade` (UIKit host supports real fade)
 - **Navigation title helper**: `viaNavigationTitle(..., displayMode:)` (bridged to UIKit hosting)
@@ -64,9 +64,32 @@ This repo includes a demo target you can run in Xcode:
   - [`Via/Examples/AuthImplementation.swift`](Via/Examples/AuthImplementation.swift)
   - [`Via/Examples/TabSampleView.swift`](Via/Examples/TabSampleView.swift)
   - [`Via/Examples/DeepLinkSampleView.swift`](Via/Examples/DeepLinkSampleView.swift)
+  - [`Via/Examples/JSONPlaceholderSampleView.swift`](Via/Examples/JSONPlaceholderSampleView.swift)
+  - [`Via/Examples/NavigationTestView.swift`](Via/Examples/NavigationTestView.swift)
   - [`Via/Examples/ExternalNavigationSampleView.swift`](Via/Examples/ExternalNavigationSampleView.swift)
   - [`Via/Examples/UIKitSetupSample.swift`](Via/Examples/UIKitSetupSample.swift)
   - [`Via/Examples/UIKitImplementationSample.swift`](Via/Examples/UIKitImplementationSample.swift)
+
+## External navigation
+
+Open a website or other supported external URL without changing the app's navigation stack:
+
+```swift
+Button("Visit Via") {
+    ViaExternalNavigation.openInBrowser("github.com/israman30/Via-Navigation")
+}
+```
+
+Bare domains automatically receive an `https://` prefix. URL strings and `URL` values are both supported:
+
+```swift
+_ = ViaExternalNavigation.open("https://swift.org")
+_ = ViaExternalNavigation.open(URL(string: "mailto:hello@example.com")!)
+```
+
+Coordinators also expose `openInBrowser(...)` and `openExternalURL(...)`. iOS/iPadOS uses the system URL handler, while macOS uses `NSWorkspace`.
+
+See [`Documentation/ExternalNavigation.md`](Documentation/ExternalNavigation.md) for supported schemes, platform behavior, and the complete sample.
 
 ## Debugging / Troubleshooting
 
