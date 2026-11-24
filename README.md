@@ -25,6 +25,7 @@
 - **UIKit hosting**: drive a `UINavigationController` from the same coordinator model (iOS 13+)
 - **TabView support**: one independent navigation stack per tab (iOS 16+ host)
 - **Deep links / URL routing**: pattern matching with path/query params (single-stack + tab-aware)
+- **External navigation**: open web, email, and phone destinations in system handlers
 - **Modal presentation**: sheet detents + full screen presentation via coordinator state
 - **Transition customization**: push with `.native` / `.none` / `.fade` (UIKit host supports real fade)
 - **Navigation title helper**: `viaNavigationTitle(..., displayMode:)` (bridged to UIKit hosting)
@@ -51,6 +52,7 @@ Detailed setup, implementation, and usage live in [`Documentation/`](Documentati
 - **TabView**: [`Documentation/TabView.md`](Documentation/TabView.md)
 - **DeepLink**: [`Documentation/DeepLink.md`](Documentation/DeepLink.md)
 - **URLRouting**: [`Documentation/URLRouting.md`](Documentation/URLRouting.md)
+- **ExternalNavigation**: [`Documentation/ExternalNavigation.md`](Documentation/ExternalNavigation.md)
 
 ## Examples / Preview
 
@@ -62,6 +64,7 @@ This repo includes a demo target you can run in Xcode:
   - [`Via/Examples/AuthImplementation.swift`](Via/Examples/AuthImplementation.swift)
   - [`Via/Examples/TabSampleView.swift`](Via/Examples/TabSampleView.swift)
   - [`Via/Examples/DeepLinkSampleView.swift`](Via/Examples/DeepLinkSampleView.swift)
+  - [`Via/Examples/ExternalNavigationSampleView.swift`](Via/Examples/ExternalNavigationSampleView.swift)
   - [`Via/Examples/UIKitSetupSample.swift`](Via/Examples/UIKitSetupSample.swift)
   - [`Via/Examples/UIKitImplementationSample.swift`](Via/Examples/UIKitImplementationSample.swift)
 
